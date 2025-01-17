@@ -82,4 +82,14 @@ class ApiService {
     func fetchUserArticles(userId: Int, page: Int, completion: @escaping (Result<ApiResponse<UserShareInfo>, NetworkError>) -> Void) {
         networkManager.request("/user/\(userId)/share_articles/\(page)/json", completion: completion)
     }
+    
+    // MARK: - System
+    func fetchSystemCategories(completion: @escaping (Result<ApiResponse<[SystemCategory]>, NetworkError>) -> Void) {
+        networkManager.request("/tree/json", completion: completion)
+    }
+    
+    func fetchSystemArticles(page: Int, cid: Int, completion: @escaping (Result<ApiResponse<ArticleList>, NetworkError>) -> Void) {
+        let parameters = ["cid": cid]
+        networkManager.request("/article/list/\(page)/json", parameters: parameters, completion: completion)
+    }
 }
