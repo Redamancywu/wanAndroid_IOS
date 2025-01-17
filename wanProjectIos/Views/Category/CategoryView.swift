@@ -9,33 +9,44 @@ import SwiftUI
 
 struct CategoryView: View {
     @State private var selectedTab = 0
-    let tabs = ["体系", "公众号"]
+    let tabs = ["公众号", "广场", "问答", "专栏", "路线"]
     
     var body: some View {
         VStack(spacing: 0) {
             // 顶部标签栏
-            HStack(spacing: 30) {
-                Spacer()
-                ForEach(0..<tabs.count, id: \.self) { index in
-                    CategoryTabButton(text: tabs[index],
-                                   isSelected: selectedTab == index) {
-                        withAnimation {
-                            selectedTab = index
+            ScrollView(.horizontal, showsIndicators: false) {  // 添加滚动视图
+                HStack(spacing: 30) {  // 调整间距以适应更多标签
+                    ForEach(0..<tabs.count, id: \.self) { index in
+                        CategoryTabButton(text: tabs[index],
+                                       isSelected: selectedTab == index) {
+                            withAnimation {
+                                selectedTab = index
+                            }
                         }
                     }
                 }
-                Spacer()
+                .padding(.horizontal)
             }
-            .padding(.vertical, 10)
+            .padding(.vertical, 12)
             .background(Color(.systemBackground))
-            .shadow(radius: 1)
+            .shadow(color: Color.black.opacity(0.1), radius: 3, y: 1)
             
             // 内容视图
             TabView(selection: $selectedTab) {
-                Text("体系页面开发中...")
+                WeChatAccountView()  // 公众号视图
                     .tag(0)
-                Text("公众号页面开发中...")
+                
+                SquareView()  // 广场视图
                     .tag(1)
+                
+                QAView()  // 问答视图
+                    .tag(2)
+                
+                ColumnView()  // 专栏视图
+                    .tag(3)
+                
+                RoadmapView()  // 路线视图
+                    .tag(4)
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
         }
@@ -51,7 +62,7 @@ struct CategoryTabButton: View {
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 4) {
+            VStack(spacing: 8) {
                 Text(text)
                     .font(.headline)
                     .foregroundColor(isSelected ? .blue : .gray)
@@ -70,6 +81,8 @@ struct CategoryTabButton: View {
 // 预览
 struct CategoryView_Previews: PreviewProvider {
     static var previews: some View {
-        CategoryView()
+        NavigationView {
+            CategoryView()
+        }
     }
 } 

@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Article: Codable, Identifiable {
+struct Article: Codable, Identifiable, Equatable {
     let id: Int
     let title: String
     let desc: String?
@@ -21,10 +21,15 @@ struct Article: Codable, Identifiable {
     let chapterName: String?
     let type: Int
     let fresh: Bool
-    let tags: [ArticleTag]?
+    let tags: [ArticleTag]
+    
+    // 实现 Equatable 协议
+    static func == (lhs: Article, rhs: Article) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
-struct ArticleTag: Codable {
+struct ArticleTag: Codable, Equatable {
     let name: String
-    let url: String?
+    let url: String
 } 
