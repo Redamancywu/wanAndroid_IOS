@@ -1,10 +1,14 @@
 import Foundation
+import SwiftUI
 
 @MainActor
 class UserState: ObservableObject {
     static let shared = UserState()
     
-    @Published var isLoggedIn = false
+    @Published private(set) var currentUser: LoginResponse?
+    @Published private(set) var isLoggedIn = false
+    @AppStorage("token") private var token: String?
+    
     @Published var username = "游客"
     @Published var coinCount = 0
     @Published private(set) var collectedArticles: Set<Int> = []  // 收藏的文章ID集合
@@ -15,57 +19,39 @@ class UserState: ObservableObject {
     private let apiService = UserApiService.shared
     
     private init() {
-        // 检查是否有保存的用户信息
-        if let savedUsername = userDefaults.string(forKey: "username") {
-            self.username = savedUsername
+        // 从 UserDefaults 恢复用户状态
+        if let userData = UserDefaults.standard.data(forKey: "currentUser"),
+           let user = try? JSONDecoder().decode(LoginResponse.self, from: userData) {
+            self.currentUser = user
             self.isLoggedIn = true
         }
     }
     
-    func login(username: String, password: String) async throws {
-        let user = try await apiService.login(username: username, password: password)
-        self.isLoggedIn = true
-        self.username = user.username
-        
-        // 保存用户信息
-        userDefaults.set(username, forKey: "username")
-        await fetchUserInfo()
-        await fetchCollectedArticles()
+    func login(user: LoginResponse) {
+        currentUser = user
+        isLoggedIn = true
+        token = user.token
+        // 保存用户信息到 UserDefaults
+        saveUserInfo(user)
     }
     
-    func register(username: String, password: String, repassword: String) async throws {
-        let user = try await apiService.register(username: username, password: password, repassword: repassword)
-        
-        // 注册成功后，直接设置登录状态
-        self.isLoggedIn = true
-        self.username = user.username
-        
-        // 保存用户信息
-        userDefaults.set(username, forKey: "username")
-        
-        // 获取用户其他信息
-        await fetchUserInfo()
-        await fetchCollectedArticles()
-        
-        // 发送登录状态变化通知
-        NotificationCenter.default.post(name: .userLoginStatusChanged, object: nil)
-    }
-    
-    func logout() async {
-        do {
-            try await apiService.logout()
-        } catch {
-            print("登出失败: \(error)")
-        }
-        
-        // 无论服务器响应如何，都清除本地状态
+    func logout() {
+        currentUser = nil
         isLoggedIn = false
-        username = "游客"
-        coinCount = 0
-        collectedArticles.removeAll()
-        
-        // 清除保存的用户信息
-        userDefaults.removeObject(forKey: "username")
+        token = nil
+        // 清除用户信息
+        clearUserInfo()
+    }
+    
+    private func saveUserInfo(_ user: LoginResponse) {
+        let encoder = JSONEncoder()
+        if let encoded = try? encoder.encode(user) {
+            UserDefaults.standard.set(encoded, forKey: "currentUser")
+        }
+    }
+    
+    private func clearUserInfo() {
+        UserDefaults.standard.removeObject(forKey: "currentUser")
     }
     
     func fetchUserInfo() async {
@@ -90,20 +76,14 @@ class UserState: ObservableObject {
     
     func toggleCollect(articleId: Int) async throws {
         guard isLoggedIn else {
-            throw UserError.needLogin
+            throw ApiError.message("请先登录")
         }
-        
-        if collectedArticles.contains(articleId) {
-            try await apiService.uncollectArticle(id: articleId)
-            collectedArticles.remove(articleId)
-        } else {
-            try await apiService.collectArticle(id: articleId)
-            collectedArticles.insert(articleId)
-        }
+        // TODO: 实现收藏/取消收藏
     }
     
     func isCollected(articleId: Int) -> Bool {
-        collectedArticles.contains(articleId)
+        // TODO: 实现收藏状态检查
+        return false
     }
 }
 

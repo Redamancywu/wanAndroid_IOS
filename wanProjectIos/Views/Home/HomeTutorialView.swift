@@ -8,25 +8,21 @@
 import SwiftUI
 
 struct HomeTutorialView: View {
-    @EnvironmentObject var viewModel: HomeViewModel
-    
-    let columns = [
-        GridItem(.flexible()),
-        GridItem(.flexible())
-    ]
+    @EnvironmentObject private var viewModel: HomeViewModel
     
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: columns, spacing: 16) {
+            LazyVStack(spacing: 16) {
                 ForEach(viewModel.tutorials) { tutorial in
                     TutorialCardView(tutorial: tutorial)
+                        .onTapToOpenWeb(url: tutorial.link ?? "", title: tutorial.name)
                 }
             }
             .padding()
         }
         .refreshable {
             Task {
-                await viewModel.refreshData()
+                await viewModel.fetchTutorials()
             }
         }
     }
@@ -84,5 +80,6 @@ struct TutorialCardView: View {
         .background(Color(.systemBackground))
         .cornerRadius(16)
         .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+        .withTapFeedback()
     }
 } 

@@ -125,6 +125,7 @@ struct ArticleCardView: View {
         .onAppear {
             viewModel.checkCollectionStatus(articleId: article.id)
         }
+        .onTapToOpenWeb(url: article.link ?? "", title: article.title)
         .withTapFeedback()
     }
 }
@@ -133,50 +134,11 @@ struct ArticleCardView: View {
 struct ArticleCardView_Previews: PreviewProvider {
     static var previews: some View {
         VStack(spacing: 16) {
-            // 普通文章
-            ArticleCardView(article: Article(
-                id: 1,
-                title: "Android开发技巧：性能优化实践",
-                desc: "本文介绍了Android应用性能优化的实用技巧，包括内存优化、布局优化等内容。",
-                link: "https://example.com",
-                author: "张三",
-                shareUser: nil,
-                niceDate: "2024-01-18",
-                publishTime: 1705545600000,
-                collect: false,
-                superChapterName: "开发技巧",
-                chapterName: "性能优化",
-                type: 0,
-                fresh: true,
-                tags: [],
-                envelopePic: nil,
-                projectLink: nil,
-                apkLink: nil,
-                prefix: nil
-            ))
-            
-            // 分享的文章
-            ArticleCardView(article: Article(
-                id: 2,
-                title: "iOS开发：SwiftUI实战经验分享",
-                desc: "分享一些SwiftUI开发中的实用技巧和注意事项。",
-                link: "https://example.com",
-                author: "",
-                shareUser: "李四",
-                niceDate: "2024-01-17",
-                publishTime: 1705459200000,
-                collect: true,
-                superChapterName: "iOS开发",
-                chapterName: "SwiftUI",
-                type: 0,
-                fresh: false,
-                tags: [],
-                envelopePic: nil,
-                projectLink: nil,
-                apkLink: nil,
-                prefix: nil
-            ))
+            ArticleCardView(article: PreviewData.article)
+            ArticleCardView(article: PreviewData.sharedArticle)
         }
         .padding()
+        .environmentObject(UserState.shared)
+        .environmentObject(ProfileViewModel())
     }
 } 

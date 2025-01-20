@@ -24,3 +24,20 @@ struct ArticleList: Codable {
     let size: Int
     let total: Int
 }
+
+// 空响应类型
+struct EmptyResponse: Codable {}
+
+// API 错误类型
+enum ApiError: Error {
+    case message(String)
+}
+
+extension ApiError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .message(let message):
+            return message
+        }
+    }
+}

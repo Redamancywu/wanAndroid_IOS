@@ -105,5 +105,7 @@ struct HomeRecommendView_Previews: PreviewProvider {
     static var previews: some View {
         HomeRecommendView()
             .environmentObject(HomeViewModel())
+            .environmentObject(UserState.shared)
+            .environmentObject(ProfileViewModel())
     }
 } 

@@ -18,4 +18,11 @@ struct LoadingView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))
     }
+}
+
+struct LoadingView_Previews: PreviewProvider {
+    static var previews: some View {
+        LoadingView("加载中...")
+            .environmentObject(UserState.shared)
+    }
 } 

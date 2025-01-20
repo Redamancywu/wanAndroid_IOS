@@ -123,6 +123,7 @@ struct WebViewContainer: View {
 
 // 网页打开工具
 enum WebViewRouter {
+    // 使用 SFSafariViewController 打开（当前方式）
     static func openURL(_ urlString: String, title: String, from viewController: UIViewController) {
         if let url = URL(string: urlString) {
             let config = SFSafariViewController.Configuration()
@@ -132,8 +133,16 @@ enum WebViewRouter {
         }
     }
     
+    // 使用内置 WebView 打开
     static func openWebView(_ urlString: String, title: String) -> some View {
         WebViewContainer(url: urlString, title: title)
+    }
+    
+    // 直接在外部浏览器打开
+    static func openInBrowser(_ urlString: String) {
+        if let url = URL(string: urlString) {
+            UIApplication.shared.open(url)
+        }
     }
 }
 
@@ -146,5 +155,12 @@ extension View {
                 WebViewRouter.openURL(url, title: title, from: viewController)
             }
         }
+    }
+}
+
+struct WebViewContainer_Previews: PreviewProvider {
+    static var previews: some View {
+        WebViewContainer(url: "https://example.com", title: "示例网页")
+            .environmentObject(UserState.shared)
     }
 } 

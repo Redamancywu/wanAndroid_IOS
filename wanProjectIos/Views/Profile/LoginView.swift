@@ -1,103 +1,139 @@
 import SwiftUI
-
+import Foundation
 struct LoginView: View {
-    @ObservedObject var viewModel: ProfileViewModel
+    @StateObject private var viewModel = LoginViewModel()
     @Environment(\.dismiss) private var dismiss
-    @State private var isRegistering = false
-    
-    // 第三方登录选项
-    private let thirdPartyLogins: [(icon: String, name: String, color: Color)] = [
-        ("apple.logo", "Apple", .black),
-        ("g.circle.fill", "Google", .red),
-        ("message.fill", "WeChat", .green),
-        ("bubble.left.fill", "QQ", .blue)
-    ]
     
     var body: some View {
         NavigationView {
-            Form {
-                if !isRegistering {
-                    // 登录表单
-                    Section(header: Text("登录")) {
-                        TextField("用户名", text: $viewModel.loginUsername)
-                            .textContentType(.username)
-                            .autocapitalization(.none)
-                        SecureField("密码", text: $viewModel.loginPassword)
-                            .textContentType(.password)
+            ScrollView {
+                VStack(spacing: 32) {
+                    // Logo 和欢迎文字
+                    VStack(spacing: 16) {
+                        Image(systemName: "person.circle.fill")
+                            .resizable()
+                            .frame(width: 80, height: 80)
+                            .foregroundColor(.blue)
+                            .padding(.top, 40)
+                        
+                        Text(viewModel.isRegistering ? "创建账号" : "欢迎回来")
+                            .font(.title)
+                            .fontWeight(.bold)
+                        
+                        Text(viewModel.isRegistering ? "填写信息以创建您的账号" : "登录以继续")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                     }
                     
-                    Button("登录") {
-                        Task {
-                            await viewModel.login()
+                    // 输入表单
+                    VStack(spacing: 20) {
+                        // 用户名
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("用户名")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            
+                            HStack {
+                                Image(systemName: "person")
+                                    .foregroundColor(.gray)
+                                TextField("请输入用户名", text: $viewModel.username)
+                                    .textContentType(.username)
+                                    .autocapitalization(.none)
+                            }
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .cornerRadius(10)
+                        }
+                        
+                        // 密码
+                        SecureInputField(
+                            title: "密码",
+                            placeholder: "请输入密码",
+                            text: $viewModel.password
+                        )
+                        
+                        if viewModel.isRegistering {
+                            // 确认密码
+                            SecureInputField(
+                                title: "确认密码",
+                                placeholder: "请再次输入密码",
+                                text: $viewModel.repassword
+                            )
                         }
                     }
-                    .disabled(viewModel.isLoading)
+                    .padding(.horizontal)
                     
-                    // 第三方登录选项
-                    Section(header: Text("第三方登录")) {
-                        HStack(spacing: 20) {
-                            ForEach(thirdPartyLogins, id: \.name) { login in
-                                Button {
-                                    Task {
-                                        await viewModel.thirdPartyLogin(type: login.name)
-                                    }
-                                } label: {
-                                    VStack(spacing: 4) {
-                                        Image(systemName: login.icon)
-                                            .font(.system(size: 24))
-                                            .foregroundColor(login.color)
-                                        
-                                        Text(login.name)
-                                            .font(.caption2)
-                                            .foregroundColor(.gray)
-                                    }
-                                }
-                                .frame(maxWidth: .infinity)
+                    // 登录/注册按钮
+                    Button {
+                        Task {
+                            if viewModel.isRegistering {
+                                await viewModel.register()
+                            } else {
+                                await viewModel.login()
+                            }
+                            if viewModel.error == nil {
+                                dismiss()
                             }
                         }
-                        .padding(.vertical, 8)
-                    }
-                } else {
-                    // 注册表单
-                    Section(header: Text("注册")) {
-                        TextField("用户名", text: $viewModel.registerUsername)
-                            .textContentType(.username)
-                            .autocapitalization(.none)
-                        SecureField("密码", text: $viewModel.registerPassword)
-                            .textContentType(.newPassword)
-                        SecureField("确认密码", text: $viewModel.registerConfirmPassword)
-                            .textContentType(.newPassword)
-                    }
-                    
-                    Button("注册") {
-                        Task {
-                            await viewModel.register()
+                    } label: {
+                        HStack {
+                            if viewModel.isLoading {
+                                ProgressView()
+                                    .progressViewStyle(.circular)
+                                    .tint(.white)
+                            } else {
+                                Image(systemName: viewModel.isRegistering ? "person.badge.plus" : "arrow.right.circle")
+                                Text(viewModel.isRegistering ? "注册" : "登录")
+                            }
                         }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
                     }
+                    .padding(.horizontal)
                     .disabled(viewModel.isLoading)
-                }
-                
-                Button(isRegistering ? "已有账号？去登录" : "没有账号？去注册") {
-                    isRegistering.toggle()
+                    
+                    // 切换登录/注册
+                    Button {
+                        withAnimation {
+                            viewModel.isRegistering.toggle()
+                            viewModel.error = nil
+                            // 清空输入
+                            viewModel.password = ""
+                            viewModel.repassword = ""
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(viewModel.isRegistering ? "已有账号？" : "没有账号？")
+                                .foregroundColor(.secondary)
+                            Text(viewModel.isRegistering ? "去登录" : "去注册")
+                                .foregroundColor(.blue)
+                        }
+                        .font(.subheadline)
+                    }
                 }
             }
-            .navigationTitle(isRegistering ? "注册" : "登录")
-            .navigationBarItems(leading: Button("取消") {
-                dismiss()
-            })
-            .alert("错误", isPresented: .constant(viewModel.errorMessage != nil)) {
-                Button("确定") {
-                    viewModel.errorMessage = nil
-                }
+            .navigationBarTitleDisplayMode(.inline)
+            .alert("错误", isPresented: .init(
+                get: { viewModel.error != nil },
+                set: { if !$0 { viewModel.error = nil } }
+            )) {
+                Button("确定", role: .cancel) {}
             } message: {
-                if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
+                if let error = viewModel.error {
+                    Text(error.localizedDescription)
                 }
             }
-            .disabled(viewModel.isLoading)
-            .overlay {
-                if viewModel.isLoading {
-                    ProgressView()
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .foregroundColor(.primary)
+                    }
                 }
             }
         }
@@ -109,33 +145,20 @@ struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
         Group {
             // 登录状态预览
-            LoginView(viewModel: PreviewProfileViewModel())
+            LoginView()
                 .previewDisplayName("登录状态")
             
             // 加载状态预览
-            LoginView(viewModel: PreviewProfileViewModel(isLoading: true))
+            LoginView()
                 .previewDisplayName("加载状态")
+                .environmentObject(UserState.shared)
             
             // 错误状态预览
-            LoginView(viewModel: PreviewProfileViewModel(errorMessage: "用户名或密码错误"))
+            LoginView()
                 .previewDisplayName("错误状态")
+                .environmentObject(UserState.shared)
         }
     }
-}
-
-// 用于预览的 ViewModel
-private class PreviewProfileViewModel: ProfileViewModel {
-    init(isLoading: Bool = false, errorMessage: String? = nil) {
-        super.init()
-        self.isLoading = isLoading
-        self.errorMessage = errorMessage
-        
-        // 添加一些示例数据
-        self.loginUsername = "demo_user"
-        self.loginPassword = "password123"
-        self.registerUsername = "new_user"
-        self.registerPassword = "newpass123"
-        self.registerConfirmPassword = "newpass123"
-    }
 } 
+
 

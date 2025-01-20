@@ -3,6 +3,8 @@ import SafariServices
 
 struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
+    @EnvironmentObject private var userState: UserState
+    @State private var showLoginSheet = false
     
     // 功能列表数据
     let functionItems: [[FunctionItem]] = [
@@ -34,6 +36,21 @@ struct ProfileView: View {
                     
                     // 版本信息
                     versionInfo
+                    
+                    // 登录按钮
+                    if !userState.isLoggedIn {
+                        Button {
+                            showLoginSheet = true
+                        } label: {
+                            Text("登录/注册")
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
+                        }
+                        .padding()
+                    }
                 }
                 .padding()
             }
@@ -46,9 +63,10 @@ struct ProfileView: View {
             } message: {
                 Text("该功能需要登录后才能使用")
             }
-            .sheet(isPresented: $viewModel.showLoginSheet) {
-                LoginView(viewModel: viewModel)
+            .sheet(isPresented: $showLoginSheet) {
+                LoginView()
             }
+            .navigationTitle("我的")
         }
     }
     

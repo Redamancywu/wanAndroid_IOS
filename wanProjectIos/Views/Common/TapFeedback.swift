@@ -18,4 +18,12 @@ extension View {
     func withTapFeedback() -> some View {
         modifier(TapFeedback())
     }
+}
+
+struct TapFeedback_Previews: PreviewProvider {
+    static var previews: some View {
+        Button("点击我") { }
+            .withTapFeedback()
+            .environmentObject(UserState.shared)
+    }
 } 

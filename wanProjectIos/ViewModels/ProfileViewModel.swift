@@ -2,6 +2,11 @@ import Foundation
 
 @MainActor
 class ProfileViewModel: ObservableObject {
+    @Published var username = "游客"
+    @Published var coinCount = 0
+    @Published var level = 0
+    @Published var rank = "--"
+    @Published var isLoggedIn = false
     @Published var showLoginSheet = false
     @Published var showLoginAlert = false
     @Published var errorMessage: String?
@@ -16,97 +21,105 @@ class ProfileViewModel: ObservableObject {
     @Published var registerPassword = ""
     @Published var registerConfirmPassword = ""
     
-    private let apiService = ApiService.shared
     private let userState = UserState.shared
+    private let authService = AuthService.shared
+    private let userApiService = UserApiService.shared
     
-    var isLoggedIn: Bool {
-        userState.isLoggedIn
-    }
-    
-    var username: String {
-        userState.username
-    }
-    
-    var coinCount: Int {
-        userState.coinCount
-    }
-    
-    var level: Int {
-        userState.level
-    }
-    
-    var rank: String {
-        userState.rank
-    }
-    
-    func login() async {
-        guard !loginUsername.isEmpty && !loginPassword.isEmpty else {
-            errorMessage = "请输入用户名和密码"
-            return
-        }
+    init() {
+        // 监听用户状态变化
+        setupObservers()
         
-        isLoading = true
-        do {
-            try await userState.login(username: loginUsername, password: loginPassword)
-            showLoginSheet = false
-            clearLoginForm()
-        } catch {
-            errorMessage = error.localizedDescription
+        // 如果已登录，获取用户信息
+        if userState.isLoggedIn {
+            Task {
+                await fetchUserInfo()
+            }
         }
-        isLoading = false
     }
     
-    func register() async {
-        guard validateRegisterInput() else { return }
-        
-        isLoading = true
-        do {
-            try await userState.register(
-                username: registerUsername,
-                password: registerPassword,
-                repassword: registerConfirmPassword
-            )
-            // 注册并登录成功后关闭登录表单
-            showLoginSheet = false
-            // 清空表单数据
-            clearRegisterForm()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-        isLoading = false
+    private func setupObservers() {
+        // 监听登录状态变化
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleLoginStatusChanged),
+            name: .userLoginStatusChanged,
+            object: nil
+        )
     }
     
-    func logout() async {
-        await userState.logout()
+    @objc private func handleLoginStatusChanged() {
+        isLoggedIn = userState.isLoggedIn
+        if isLoggedIn {
+            Task {
+                await fetchUserInfo()
+            }
+        }
     }
     
     func showLogin() {
         showLoginSheet = true
     }
     
-    private func clearLoginForm() {
-        loginUsername = ""
-        loginPassword = ""
+    func login(username: String, password: String) async throws {
+        let response = try await authService.login(username: username, password: password)
+        userState.login(user: response)
+        await fetchUserInfo()
     }
     
-    private func clearRegisterForm() {
-        registerUsername = ""
-        registerPassword = ""
-        registerConfirmPassword = ""
+    func register(username: String, password: String, repassword: String) async throws {
+        let response = try await authService.register(
+            username: username,
+            password: password,
+            repassword: repassword
+        )
+        userState.login(user: response)
+        await fetchUserInfo()
     }
     
-    private func validateRegisterInput() -> Bool {
-        guard !registerUsername.isEmpty && !registerPassword.isEmpty else {
-            errorMessage = "请输入用户名和密码"
-            return false
+    func logout() async {
+        do {
+            try await authService.logout()
+            userState.logout()
+            resetUserInfo()
+        } catch {
+            print("登出失败: \(error)")
         }
+    }
+    
+    private func resetUserInfo() {
+        username = "游客"
+        coinCount = 0
+        level = 0
+        rank = "--"
+        isLoggedIn = false
+    }
+    
+    func fetchUserInfo() async {
+        guard userState.isLoggedIn else { return }
         
-        guard registerPassword == registerConfirmPassword else {
-            errorMessage = "两次输入的密码不一致"
-            return false
+        do {
+            let coinInfo = try await userApiService.fetchCoinInfo()
+            self.coinCount = coinInfo.coinCount
+            self.level = coinInfo.level
+            self.rank = coinInfo.rank
+            
+            if let user = userState.currentUser {
+                self.username = user.nickname
+            }
+        } catch {
+            print("获取用户信息失败: \(error)")
         }
-        
-        return true
+    }
+    
+    // 处理需要登录的功能点击
+    func handleLoginRequired(action: @escaping () async -> Void) {
+        if userState.isLoggedIn {
+            Task {
+                await action()
+            }
+        } else {
+            showLoginAlert = true
+        }
     }
     
     // 第三方登录
@@ -132,8 +145,9 @@ class ProfileViewModel: ObservableObject {
             
             // 模拟登录成功
             try await Task.sleep(nanoseconds: 1_000_000_000)
-            try await userState.login(username: "第三方用户", password: "")
-            showLoginSheet = false
+            errorMessage = "暂不支持第三方登录"
+            isLoading = false
+            return
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -150,4 +164,4 @@ enum LoginError: LocalizedError {
             return "不支持的登录方式"
         }
     }
-} 
+}

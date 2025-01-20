@@ -26,4 +26,5 @@ struct SystemCategory: Codable, Identifiable {
         case visible
         case children
     }
-} 
+}
+

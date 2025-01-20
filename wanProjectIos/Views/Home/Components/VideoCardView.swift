@@ -85,5 +85,7 @@ struct VideoCardView_Previews: PreviewProvider {
         VideoCardView(article: MockData.articles[0])
             .padding()
             .previewLayout(.sizeThatFits)
+            .environmentObject(UserState.shared)
+            .environmentObject(ProfileViewModel())
     }
 } 

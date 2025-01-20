@@ -44,5 +44,7 @@ struct HomeProjectView_Previews: PreviewProvider {
     static var previews: some View {
         HomeProjectView()
             .environmentObject(ProjectViewModel())
+            .environmentObject(UserState.shared)
+            .environmentObject(ProfileViewModel())
     }
 } 

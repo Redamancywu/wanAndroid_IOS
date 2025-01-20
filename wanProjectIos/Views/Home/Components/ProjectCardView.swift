@@ -140,6 +140,7 @@ struct ProjectCardView: View {
         .onAppear {
             viewModel.checkCollectionStatus(articleId: article.id)
         }
+        .onTapToOpenWeb(url: article.link ?? "", title: article.title)
         .withTapFeedback()
     }
 }
@@ -148,51 +149,12 @@ struct ProjectCardView: View {
 struct ProjectCardView_Previews: PreviewProvider {
     static var previews: some View {
         VStack(spacing: 20) {
-            // 有图片的文章
-            ProjectCardView(article: Article(
-                id: 1,
-                title: "Flutter 实战：构建跨平台应用",
-                desc: "本文介绍了如何使用 Flutter 构建一个跨平台应用，包含完整的示例代码和详细的步骤说明。",
-                link: "https://example.com",
-                author: "张三",
-                shareUser: nil,
-                niceDate: "2024-01-18",
-                publishTime: 1705545600000,
-                collect: false,
-                superChapterName: "跨平台",
-                chapterName: "Flutter",
-                type: 0,
-                fresh: true,
-                tags: [],
-                envelopePic: "https://www.wanandroid.com/blogimgs/89868c9a-e793-46f3-a239-751246951b7f.png",
-                projectLink: "https://github.com/example/flutter-demo",
-                apkLink: nil,
-                prefix: nil
-            ))
-            
-            // 无图片的文章
-            ProjectCardView(article: Article(
-                id: 3,
-                title: "无图片的文章标题",
-                desc: "这是一篇没有图片的文章描述，应该显示更多的文本内容。",
-                link: "https://example.com",
-                author: "作者名",
-                shareUser: nil,
-                niceDate: "2024-01-18",
-                publishTime: 1705545600000,
-                collect: false,
-                superChapterName: "测试分类",
-                chapterName: "子分类",
-                type: 0,
-                fresh: true,
-                tags: [],
-                envelopePic: nil,
-                projectLink: nil,
-                apkLink: nil,
-                prefix: nil
-            ))
+            ProjectCardView(article: PreviewData.projectArticle)
+            ProjectCardView(article: PreviewData.projectArticleNoImage)
         }
         .padding()
         .previewLayout(.sizeThatFits)
+        .environmentObject(UserState.shared)
+        .environmentObject(ProfileViewModel())
     }
 } 

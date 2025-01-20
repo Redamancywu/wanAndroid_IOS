@@ -5,16 +5,31 @@ import SwiftUI
 class CollectionViewModel: ObservableObject {
     @Published private(set) var articles: [CollectionArticle] = []
     @Published private(set) var isLoading = false
-    @Published var errorMessage: String?
+    @Published var error: Error?
     
-    private let apiService = UserApiService.shared
+    private let userApiService = UserApiService.shared
     
-    func fetchCollections() async {
+    func fetchCollectedArticles() async {
         isLoading = true
         do {
-            articles = try await apiService.fetchCollectedArticles()
+            let fetchedArticles = try await userApiService.fetchCollectedArticles()
+            // 转换 Article 到 CollectionArticle
+            articles = fetchedArticles.map { article in
+                CollectionArticle(
+                    id: article.id,
+                    title: article.title,
+                    link: article.link,
+                    author: article.author,
+                    niceDate: article.niceDate,
+                    originId: article.id,  // 使用相同的 id
+                    publishTime: TimeInterval(article.publishTime / 1000), // 转换为秒
+                    desc: article.desc ?? "",
+                    chapterName: article.chapterName ?? "",
+                    envelopePic: article.envelopePic ?? ""
+                )
+            }
         } catch {
-            errorMessage = error.localizedDescription
+            self.error = error
         }
         isLoading = false
     }

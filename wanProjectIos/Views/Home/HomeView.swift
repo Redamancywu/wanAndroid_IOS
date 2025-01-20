@@ -171,5 +171,7 @@ struct HomeView_Previews: PreviewProvider {
         HomeView()
             .environmentObject(HomeViewModel())
             .environmentObject(ProjectViewModel())
+            .environmentObject(UserState.shared)
+            .environmentObject(ProfileViewModel())
     }
 }

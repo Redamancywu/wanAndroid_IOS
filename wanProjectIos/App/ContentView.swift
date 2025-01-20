@@ -38,4 +38,6 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-} 
+        .environmentObject(UserState.shared)
+        .environmentObject(ProfileViewModel())
+}

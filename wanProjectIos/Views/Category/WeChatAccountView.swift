@@ -208,52 +208,39 @@ struct ArticleRow: View {
     var body: some View {
         HStack {
             // 文章内容按钮
-            Button {
-                HiLog.i("点击文章: \(article.title)")
-                if let link = article.link {
-                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                       let viewController = windowScene.windows.first?.rootViewController {
-                        WebViewRouter.openURL(link, title: article.title, from: viewController)
-                        if !readArticles.contains(article.id) {
-                            readArticles.append(article.id)
-                        }
-                    }
-                }
-            } label: {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(article.title)
-                        .font(.system(size: 15))
-                        .foregroundColor(readArticles.contains(article.id) ? .gray : .primary)
-                        .lineLimit(2)
-                    
-                    HStack {
-                        if let author = article.author {
-                            Label(author, systemImage: "person.circle")
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                        }
-                        
-                        Spacer()
-                        
-                        Text(article.niceDate)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(article.title)
+                    .font(.system(size: 15))
+                    .foregroundColor(readArticles.contains(article.id) ? .gray : .primary)
+                    .lineLimit(2)
+                
+                HStack {
+                    if let author = article.author {
+                        Label(author, systemImage: "person.circle")
                             .font(.caption)
-                            .foregroundColor(.gray)
-                        
-                        if article.fresh {
-                            Text("新")
-                                .font(.caption)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.red)
-                                .cornerRadius(4)
-                        }
+                            .foregroundColor(.blue)
+                    }
+                    
+                    Spacer()
+                    
+                    Text(article.niceDate)
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    
+                    if article.fresh {
+                        Text("新")
+                            .font(.caption)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.red)
+                            .cornerRadius(4)
                     }
                 }
-                .padding(.horizontal)
-                .padding(.vertical, 8)
             }
-        
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            .onTapToOpenWeb(url: article.link ?? "", title: article.title)
             .withTapFeedback()
             
             // 收藏按钮
@@ -291,23 +278,6 @@ struct ArticleRow: View {
             if let url = URL(string: article.link ?? "") {
                 ShareSheet(activityItems: [url])
             }
-        }
-        .swipeActions(edge: .trailing) {
-            Button {
-                Task {
-                    await viewModel.toggleCollect(articleId: article.id)
-                }
-            } label: {
-                Label("收藏", systemImage: "heart")
-            }
-            .tint(.red)
-            
-            Button {
-                showShareSheet = true
-            } label: {
-                Label("分享", systemImage: "square.and.arrow.up")
-            }
-            .tint(.blue)
         }
     }
 }
@@ -410,30 +380,47 @@ class WeChatAccountSectionViewModel: ObservableObject {
     }
 }
 
-// 预览
+// 主视图预览
 struct WeChatAccountView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
             WeChatAccountView()
                 .navigationTitle("公众号")
+                .environmentObject(UserState.shared)
+                .environmentObject(ProfileViewModel())
         }
     }
 }
 
+// 区块视图预览
 struct WeChatAccountSection_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
             WeChatAccountSection(account: PreviewData.weChatArticle)
                 .padding()
+                .environmentObject(UserState.shared)
+                .environmentObject(ProfileViewModel())
         }
     }
 }
 
+// 文章行视图预览
 struct ArticleRow_Previews: PreviewProvider {
     static var previews: some View {
         ArticleRow(article: PreviewData.article)
             .padding()
             .previewLayout(.sizeThatFits)
+            .environmentObject(UserState.shared)
+            .environmentObject(ProfileViewModel())
+    }
+}
+
+// ShareSheet 预览
+struct ShareSheet_Previews: PreviewProvider {
+    static var previews: some View {
+        ShareSheet(activityItems: ["测试分享"])
+            .environmentObject(UserState.shared)
+            .environmentObject(ProfileViewModel())
     }
 }
 

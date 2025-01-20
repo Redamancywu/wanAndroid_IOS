@@ -2,100 +2,87 @@ import SwiftUI
 
 struct CollectionView: View {
     @StateObject private var viewModel = CollectionViewModel()
-    @Environment(\.openURL) private var openURL
     
     var body: some View {
-        NavigationView {
-            Group {
-                if viewModel.isLoading {
-                    ProgressView()
-                } else if viewModel.articles.isEmpty {
-                    EmptyPlaceholderView(
-                        icon: "star.fill",
-                        title: "暂无收藏",
-                        message: "快去收藏感兴趣的文章吧"
-                    )
-                } else {
-                    ScrollView {
-                        LazyVStack(spacing: 12) {
-                            ForEach(viewModel.articles) { article in
-                                CollectionArticleCard(article: article)
-                                    .onTapGesture {
-                                        if let url = URL(string: article.link) {
-                                            openURL(url)
-                                        }
-                                    }
-                            }
-                        }
-                        .padding()
-                    }
-                    .refreshable {
-                        await viewModel.fetchCollections()
+        List {
+            ForEach(viewModel.articles) { article in
+                CollectionArticleRow(article: article)
+            }
+        }
+        .listStyle(.plain)
+        .refreshable {
+            await viewModel.fetchCollectedArticles()
+        }
+        .overlay {
+            if viewModel.isLoading {
+                LoadingView("加载中...")
+            } else if let error = viewModel.error {
+                ErrorView(error: error) {
+                    Task {
+                        await viewModel.fetchCollectedArticles()
                     }
                 }
+            } else if viewModel.articles.isEmpty {
+                EmptyPlaceholderView(
+                    icon: "star",
+                    title: "暂无收藏",
+                    message: "快去收藏一些文章吧"
+                )
             }
-            .navigationTitle("我的收藏")
         }
         .task {
-            await viewModel.fetchCollections()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .articleCollectionChanged)) { _ in
-            Task {
-                await viewModel.fetchCollections()
+            if viewModel.articles.isEmpty {
+                await viewModel.fetchCollectedArticles()
             }
         }
     }
 }
 
-// 收藏文章卡片
-struct CollectionArticleCard: View {
+struct CollectionArticleRow: View {
     let article: CollectionArticle
     @StateObject private var viewModel = CollectionArticleViewModel()
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // 标题
+        VStack(alignment: .leading, spacing: 8) {
             Text(article.title)
-                .font(.system(size: 16, weight: .medium))
+                .font(.system(size: 16))
                 .lineLimit(2)
             
-            // 描述
-            if let desc = article.desc {
-                Text(desc)
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-                    .lineLimit(3)
-            }
-            
-            // 底部信息
             HStack {
-                if let author = article.author, !author.isEmpty {
+                if let author = article.author {
                     Label(author, systemImage: "person.circle")
-                        .font(.system(size: 12))
+                        .font(.caption)
                         .foregroundColor(.blue)
                 }
                 
                 Spacer()
                 
                 Text(article.niceDate)
-                    .font(.system(size: 12))
+                    .font(.caption)
                     .foregroundColor(.gray)
-                
-                Button {
-                    Task {
-                        await viewModel.uncollect(articleId: article.originId)
-                    }
-                } label: {
-                    Image(systemName: "heart.fill")
-                        .foregroundColor(.red)
-                }
-                .buttonStyle(.scale)
             }
         }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.08), radius: 8, y: 2)
+        .padding(.vertical, 8)
+        .contentShape(Rectangle())
+        .onTapToOpenWeb(url: article.link ?? "", title: article.title)
+        .swipeActions(edge: .trailing) {
+            Button(role: .destructive) {
+                Task {
+                    await viewModel.uncollect(articleId: article.id)
+                }
+            } label: {
+                Label("取消收藏", systemImage: "star.slash")
+            }
+        }
+    }
+}
+
+// 预览
+struct CollectionView_Previews: PreviewProvider {
+    static var previews: some View {
+        CollectionView()
+            .environmentObject(UserState.shared)
+            .environmentObject(ProfileViewModel())
     }
 }
 

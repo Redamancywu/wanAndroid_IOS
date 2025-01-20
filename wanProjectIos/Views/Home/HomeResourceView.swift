@@ -22,7 +22,3 @@ struct HomeResourceView: View {
         }
     }
 }
-
-#Preview {
-    HomeResourceView()
-} 

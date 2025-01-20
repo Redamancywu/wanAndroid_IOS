@@ -8,17 +8,17 @@
 import SwiftUI
 
 struct HomeHarmonyView: View {
-    @EnvironmentObject var viewModel: HomeViewModel
+    @EnvironmentObject private var viewModel: HomeViewModel
     
     var body: some View {
         ScrollView {
-            LazyVStack(spacing: 12) {
+            LazyVStack(spacing: 16) {
                 ForEach(viewModel.harmonyArticles) { article in
-                    HarmonyCardView(article: article)
-                        .padding(.horizontal)
+                    ArticleCardView(article: article)
+                        .onTapToOpenWeb(url: article.link ?? "", title: article.title)
                 }
             }
-            .padding(.vertical)
+            .padding()
         }
         .refreshable {
             Task {
@@ -100,5 +100,7 @@ struct HomeHarmonyView_Previews: PreviewProvider {
     static var previews: some View {
         HomeHarmonyView()
             .environmentObject(HomeViewModel())
+            .environmentObject(UserState.shared)
+            .environmentObject(ProfileViewModel())
     }
 } 

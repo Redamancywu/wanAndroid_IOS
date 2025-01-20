@@ -38,4 +38,14 @@ struct ErrorView: View {
         }
         .padding()
     }
+}
+
+struct ErrorView_Previews: PreviewProvider {
+    static var previews: some View {
+        ErrorView(error: NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "测试错误"])) {
+            print("重试")
+        }
+        .environmentObject(UserState.shared)
+        .environmentObject(ProfileViewModel())
+    }
 } 

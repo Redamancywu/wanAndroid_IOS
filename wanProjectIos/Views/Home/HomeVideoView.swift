@@ -32,5 +32,7 @@ struct HomeVideoView: View {
 struct HomeVideoView_Previews: PreviewProvider {
     static var previews: some View {
         HomeVideoView(articles: MockData.articles)
+            .environmentObject(UserState.shared)
+            .environmentObject(ProfileViewModel())
     }
 } 

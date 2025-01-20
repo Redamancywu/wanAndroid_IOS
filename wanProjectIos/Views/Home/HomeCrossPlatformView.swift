@@ -22,7 +22,3 @@ struct HomeCrossPlatformView: View {
         }
     }
 }
-
-#Preview {
-    HomeCrossPlatformView()
-} 
