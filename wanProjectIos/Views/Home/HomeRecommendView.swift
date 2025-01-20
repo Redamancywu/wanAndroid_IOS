@@ -14,15 +14,26 @@ struct HomeRecommendView: View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(viewModel.recommendArticles) { article in
-                    ProjectCardView(article: article)
+                    ArticleCardView(article: article)
                         .padding(.horizontal)
+                }
+                
+                // 加载更多指示器
+                if !viewModel.recommendArticles.isEmpty {
+                    ProgressView()
+                        .padding()
+                        .onAppear {
+                            Task {
+                                await viewModel.loadMoreRecommendArticles()
+                            }
+                        }
                 }
             }
             .padding(.vertical)
         }
         .refreshable {
             Task {
-                await viewModel.fetchRecommendArticles(page: 0)
+                await viewModel.refreshData()
             }
         }
     }

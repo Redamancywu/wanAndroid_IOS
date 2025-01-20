@@ -19,6 +19,18 @@ class HomeViewModel: ObservableObject {
     
     private let apiService = ApiService.shared
     
+    // 添加数据加载状态标记
+    private var hasLoadedBanners = false
+    private var hasLoadedArticles = false
+    private var hasLoadedHarmonyArticles = false
+    private var hasLoadedTutorialArticles = false
+    
+    // 分页相关属性
+    private var currentRecommendPage = 0
+    private let pageSize = 10
+    private var isLoadingMore = false
+    private var hasMoreData = true
+    
     init() {
         HiLog.i("HomeViewModel initialized")
         Task {
@@ -27,6 +39,11 @@ class HomeViewModel: ObservableObject {
     }
     
     func loadInitialData() async {
+        guard !hasLoadedBanners else {
+            HiLog.i("Banner数据已加载，跳过")
+            return
+        }
+        
         isLoading = true
         errorMessage = nil
         
@@ -62,6 +79,7 @@ class HomeViewModel: ObservableObject {
         }
         
         isLoading = false
+        hasLoadedBanners = true
     }
     
     func fetchBanners() async {
@@ -96,6 +114,11 @@ class HomeViewModel: ObservableObject {
     }
     
     func fetchArticles(page: Int) async {
+        guard !hasLoadedArticles else {
+            HiLog.i("文章列表数据已加载，跳过")
+            return
+        }
+        
         HiLog.i("开始获取文章列表，页码: \(page)")
         
         do {
@@ -126,9 +149,15 @@ class HomeViewModel: ObservableObject {
             self.errorMessage = error.localizedDescription
             HiLog.e("文章列表请求异常: \(error)")
         }
+        hasLoadedArticles = true
     }
     
     func fetchHarmonyArticles() async {
+        guard !hasLoadedHarmonyArticles else {
+            HiLog.i("鸿蒙专栏数据已加载，跳过")
+            return
+        }
+        
         HiLog.i("开始获取鸿蒙专栏数据")
         
         do {
@@ -156,6 +185,7 @@ class HomeViewModel: ObservableObject {
             self.errorMessage = error.localizedDescription
             HiLog.e("鸿蒙专栏请求异常: \(error)")
         }
+        hasLoadedHarmonyArticles = true
     }
     
     func fetchRecommendArticles(page: Int) async {
@@ -176,11 +206,12 @@ class HomeViewModel: ObservableObject {
             if response.errorCode == 0 {
                 if page == 0 {
                     self.recommendArticles = response.data.datas
-                    HiLog.i("推荐文章列表获取成功: 获取到 \(response.data.datas.count) 条数据")
+                    currentRecommendPage = 0
                 } else {
                     self.recommendArticles.append(contentsOf: response.data.datas)
-                    HiLog.i("加载更多推荐文章成功: 新增 \(response.data.datas.count) 条数据")
                 }
+                hasMoreData = response.data.datas.count >= pageSize
+                HiLog.i("推荐文章获取成功: \(response.data.datas.count) 篇，页码: \(page)")
             } else {
                 self.errorMessage = response.errorMsg
                 HiLog.w("推荐文章列表获取失败: \(response.errorMsg)")
@@ -192,6 +223,11 @@ class HomeViewModel: ObservableObject {
     }
     
     func fetchTutorials() async {
+        guard !hasLoadedTutorialArticles else {
+            HiLog.i("教程数据已加载，跳过")
+            return
+        }
+        
         HiLog.i("开始获取教程列表")
         
         do {
@@ -217,5 +253,29 @@ class HomeViewModel: ObservableObject {
             self.errorMessage = error.localizedDescription
             HiLog.e("教程列表请求异常: \(error)")
         }
+        hasLoadedTutorialArticles = true
+    }
+    
+    // 添加刷新方法
+    func refreshData() async {
+        // 重置加载状态
+        hasLoadedBanners = false
+        hasLoadedArticles = false
+        hasLoadedHarmonyArticles = false
+        hasLoadedTutorialArticles = false
+        
+        // 重新加载数据
+        await loadInitialData()
+    }
+    
+    // 加载更多推荐文章
+    func loadMoreRecommendArticles() async {
+        guard !isLoadingMore && hasMoreData else { return }
+        
+        isLoadingMore = true
+        let nextPage = currentRecommendPage + 1
+        await fetchRecommendArticles(page: nextPage)
+        currentRecommendPage = nextPage
+        isLoadingMore = false
     }
 } 

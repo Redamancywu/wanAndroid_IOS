@@ -39,13 +39,20 @@ class NetworkManager {
             }
         }
         
-        HiLog.d("Request URL: \(urlString)")
+        HiLog.i("发起网络请求: \(request.url?.absoluteString ?? urlString)")
+        if let parameters = parameters {
+            HiLog.i("请求参数: \(parameters)")
+        }
         
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
-                HiLog.e("Network Error: \(error.localizedDescription)")
+                HiLog.e("网络请求错误: \(error.localizedDescription)")
                 completion(.failure(.requestFailed(error)))
                 return
+            }
+            
+            if let data = data, let jsonString = String(data: data, encoding: .utf8) {
+                HiLog.i("接收到响应数据: \(jsonString)")
             }
             
             guard let data = data else {
@@ -81,3 +88,33 @@ enum NetworkError: Error {
     case noData
     case decodingFailed(Error)
 } 
+
+extension NetworkManager {
+    func requestWithRetry<T: Codable>(
+        _ path: String,
+        method: HTTPMethod = .get,
+        parameters: [String: Any]? = nil,
+        retryCount: Int = 3,
+        completion: @escaping (Result<T, NetworkError>) -> Void
+    ) {
+        func attempt(remainingAttempts: Int) {
+            request(path, method: method, parameters: parameters) { (result: Result<T, NetworkError>) in
+                switch result {
+                case .success:
+                    completion(result)
+                case .failure(let error):
+                    if remainingAttempts > 0 {
+                        HiLog.w("请求失败，剩余重试次数: \(remainingAttempts - 1)")
+                        DispatchQueue.global().asyncAfter(deadline: .now() + 1) {
+                            attempt(remainingAttempts: remainingAttempts - 1)
+                        }
+                    } else {
+                        completion(.failure(error))
+                    }
+                }
+            }
+        }
+        
+        attempt(remainingAttempts: retryCount)
+    }
+}

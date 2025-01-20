@@ -70,9 +70,9 @@ struct WeChatAccountView: View {
     // 右侧文章列表
     private var articleList: some View {
         ScrollView {
-            LazyVStack(spacing: 12) {
+            LazyVStack(spacing: 16) {
                 ForEach(viewModel.authorArticles) { article in
-                    ProjectCardView(article: article)
+                    ArticleCardView(article: article)
                         .padding(.horizontal)
                 }
             }

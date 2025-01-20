@@ -24,6 +24,11 @@ struct HomeTutorialView: View {
             }
             .padding()
         }
+        .refreshable {
+            Task {
+                await viewModel.refreshData()
+            }
+        }
     }
 }
 

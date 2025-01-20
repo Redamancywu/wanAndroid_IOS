@@ -22,6 +22,10 @@ struct Article: Codable, Identifiable, Equatable {
     let type: Int
     let fresh: Bool
     let tags: [ArticleTag]
+    let envelopePic: String?    // 项目封面图
+    let projectLink: String?    // 项目链接
+    let apkLink: String?        // APK下载链接
+    let prefix: String?         // 前缀
     
     // 实现 Equatable 协议
     static func == (lhs: Article, rhs: Article) -> Bool {

@@ -75,7 +75,7 @@ struct SystemView: View {
                             
                             LazyVStack(spacing: 16) {
                                 ForEach(viewModel.articles) { article in
-                                    ProjectCardView(article: article)
+                                    ArticleCardView(article: article)
                                         .padding(.horizontal)
                                 }
                                 

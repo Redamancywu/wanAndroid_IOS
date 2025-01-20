@@ -14,7 +14,7 @@ struct HomeHarmonyView: View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(viewModel.harmonyArticles) { article in
-                    ProjectCardView(article: article)
+                    HarmonyCardView(article: article)
                         .padding(.horizontal)
                 }
             }

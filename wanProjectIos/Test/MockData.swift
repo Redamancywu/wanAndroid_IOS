@@ -46,7 +46,11 @@ struct MockData {
             chapterName: "Android Studio相关",
             type: 0,
             fresh: true,
-            tags: []
+            tags: [],
+            envelopePic: "https://www.wanandroid.com/blogimgs/89868c9a-e793-46f3-a239-751246951b7f.png",
+            projectLink: "https://github.com/example/demo",
+            apkLink: nil,
+            prefix: nil
         ),
         Article(
             id: 2,
@@ -64,7 +68,11 @@ struct MockData {
             fresh: true,
             tags: [
                 ArticleTag(name: "教程", url: "https://www.wanandroid.com/blog/show/3351")
-            ]
+            ],
+            envelopePic: "https://www.wanandroid.com/blogimgs/89868c9a-e793-46f3-a239-751246951b7f.png",
+            projectLink: "https://github.com/example/kotlin-demo",
+            apkLink: nil,
+            prefix: nil
         )
     ]
 } 

@@ -12,19 +12,30 @@ struct ErrorView: View {
     let retryAction: () -> Void
     
     var body: some View {
-        VStack {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 40))
+                .foregroundColor(.red)
+            
             Text("加载失败")
                 .font(.headline)
-                .foregroundColor(.red)
+            
             Text(message)
                 .font(.subheadline)
                 .foregroundColor(.gray)
-            Button("重试", action: retryAction)
-                .padding()
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            
+            Button(action: retryAction) {
+                Label("重试", systemImage: "arrow.clockwise")
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(Color.blue)
+                    .cornerRadius(8)
+            }
         }
-        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
     }
 } 
