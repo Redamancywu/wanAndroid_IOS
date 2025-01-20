@@ -108,10 +108,11 @@ struct ArticleCardView: View {
             }
             
             Button {
-                // 安全地处理可选的 link
-                if let link = article.link,
-                   let url = URL(string: link) {
-                    openURL(url)
+                if let link = article.link {
+                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                       let viewController = windowScene.windows.first?.rootViewController {
+                        WebViewRouter.openURL(link, title: article.title, from: viewController)
+                    }
                 }
             } label: {
                 // ... 按钮内容 ...
@@ -124,6 +125,7 @@ struct ArticleCardView: View {
         .onAppear {
             viewModel.checkCollectionStatus(articleId: article.id)
         }
+        .withTapFeedback()
     }
 }
 

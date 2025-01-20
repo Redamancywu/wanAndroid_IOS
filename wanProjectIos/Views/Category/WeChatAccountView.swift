@@ -210,12 +210,14 @@ struct ArticleRow: View {
             // 文章内容按钮
             Button {
                 HiLog.i("点击文章: \(article.title)")
-                if let link = article.link,
-                   let url = URL(string: link) {
-                    openURL(url)
-                }
-                if !readArticles.contains(article.id) {
-                    readArticles.append(article.id)
+                if let link = article.link {
+                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                       let viewController = windowScene.windows.first?.rootViewController {
+                        WebViewRouter.openURL(link, title: article.title, from: viewController)
+                        if !readArticles.contains(article.id) {
+                            readArticles.append(article.id)
+                        }
+                    }
                 }
             } label: {
                 VStack(alignment: .leading, spacing: 8) {
@@ -250,9 +252,9 @@ struct ArticleRow: View {
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 8)
-                .background(isPressed ? Color.gray.opacity(0.1) : Color.clear)
-                .animation(.easeOut(duration: 0.2), value: isPressed)
             }
+        
+            .withTapFeedback()
             
             // 收藏按钮
             Button {

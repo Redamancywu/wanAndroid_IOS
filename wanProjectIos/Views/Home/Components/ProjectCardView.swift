@@ -22,10 +22,11 @@ struct ProjectCardView: View {
         VStack(alignment: .leading, spacing: 12) {
             // 顶部内容区域（可点击）
             Button {
-                // 安全地处理可选的 link
-                if let link = article.link,
-                   let url = URL(string: link) {
-                    openURL(url)
+                if let link = article.link {
+                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                       let viewController = windowScene.windows.first?.rootViewController {
+                        WebViewRouter.openURL(link, title: article.title, from: viewController)
+                    }
                 }
             } label: {
                 HStack(alignment: .top, spacing: 12) {
@@ -139,6 +140,7 @@ struct ProjectCardView: View {
         .onAppear {
             viewModel.checkCollectionStatus(articleId: article.id)
         }
+        .withTapFeedback()
     }
 }
 
