@@ -9,11 +9,12 @@ import SwiftUI
 
 struct ArticleCardView: View {
     let article: Article
-    @State private var isCollected: Bool
+    @StateObject private var viewModel = ArticleCardViewModel()
+    @EnvironmentObject private var profileViewModel: ProfileViewModel
+    @Environment(\.openURL) private var openURL
     
     init(article: Article) {
         self.article = article
-        _isCollected = State(initialValue: article.collect)
     }
     
     var body: some View {
@@ -88,28 +89,41 @@ struct ArticleCardView: View {
                 
                 // 收藏按钮
                 Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                        isCollected.toggle()
+                    Task {
+                        await viewModel.toggleCollect(articleId: article.id)
                     }
                 } label: {
-                    Image(systemName: isCollected ? "heart.fill" : "heart")
-                        .foregroundColor(isCollected ? .red : .gray)
+                    Image(systemName: viewModel.isCollected ? "heart.fill" : "heart")
+                        .foregroundColor(viewModel.isCollected ? .red : .gray)
                 }
-                .buttonStyle(ScaleButtonStyle())
+                .buttonStyle(.scale)
+                .alert("需要登录", isPresented: $viewModel.showLoginAlert) {
+                    Button("取消", role: .cancel) { }
+                    Button("去登录") {
+                        profileViewModel.showLogin()
+                    }
+                } message: {
+                    Text("收藏功能需要登录后才能使用")
+                }
+            }
+            
+            Button {
+                // 安全地处理可选的 link
+                if let link = article.link,
+                   let url = URL(string: link) {
+                    openURL(url)
+                }
+            } label: {
+                // ... 按钮内容 ...
             }
         }
         .padding()
         .background(Color(.systemBackground))
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.08), radius: 8, y: 2)
-    }
-}
-
-private struct ScaleButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.8 : 1)
-            .animation(.easeInOut(duration: 0.2), value: configuration.isPressed)
+        .onAppear {
+            viewModel.checkCollectionStatus(articleId: article.id)
+        }
     }
 }
 

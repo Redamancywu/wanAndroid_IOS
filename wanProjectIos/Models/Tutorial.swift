@@ -22,4 +22,25 @@ struct Tutorial: Codable, Identifiable {
     let order: Int
     let type: Int
     let visible: Int
+    let link: String?
+    let icon: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case desc
+        case author
+        case cover
+        case lisense
+        case lisenseLink
+        case articleList
+        case children
+        case courseId
+        case parentChapterId
+        case order
+        case type
+        case visible
+        case link
+        case icon
+    }
 } 

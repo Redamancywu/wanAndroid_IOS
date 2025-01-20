@@ -1,15 +1,21 @@
-struct SquareArticle: Codable, Identifiable {
+struct SquareArticle: Identifiable, Codable {
     let id: Int
     let title: String
     let desc: String
     let link: String
-    let niceDate: String
     let shareUser: String
-    let userId: Int
-    let author: String?
+    let niceDate: String
     let chapterName: String?
-    let collect: Bool
-    let tags: [ArticleTag]
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case title
+        case desc
+        case link
+        case shareUser
+        case niceDate
+        case chapterName
+    }
 }
 
 struct SquareArticleList: Codable {

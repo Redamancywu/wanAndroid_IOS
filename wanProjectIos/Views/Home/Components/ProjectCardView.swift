@@ -6,22 +6,25 @@
 //
 
 import SwiftUI
+import Foundation
 
 struct ProjectCardView: View {
     let article: Article
-    @State private var isCollected: Bool
+    @StateObject private var viewModel = ProjectCardViewModel()
+    @EnvironmentObject private var profileViewModel: ProfileViewModel
     @Environment(\.openURL) private var openURL
     
     init(article: Article) {
         self.article = article
-        _isCollected = State(initialValue: article.collect)
     }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // 顶部内容区域（可点击）
             Button {
-                if let url = URL(string: article.link) {
+                // 安全地处理可选的 link
+                if let link = article.link,
+                   let url = URL(string: link) {
                     openURL(url)
                 }
             } label: {
@@ -82,7 +85,7 @@ struct ProjectCardView: View {
                     }
                 }
             }
-            .buttonStyle(ArticleCardButtonStyle())
+            .buttonStyle(.scale)
             
             // 底部信息栏（独立区域）
             HStack(alignment: .center) {
@@ -105,19 +108,27 @@ struct ProjectCardView: View {
                         Image(systemName: "link.circle")
                             .foregroundColor(.blue)
                     }
-                    .buttonStyle(ScaleButtonStyle())
+                    .buttonStyle(.scale)
                 }
                 
                 // 收藏按钮
                 Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                        isCollected.toggle()
+                    Task {
+                        await viewModel.toggleCollect(articleId: article.id)
                     }
                 } label: {
-                    Image(systemName: isCollected ? "heart.fill" : "heart")
-                        .foregroundColor(isCollected ? .red : .gray)
+                    Image(systemName: viewModel.isCollected ? "heart.fill" : "heart")
+                        .foregroundColor(viewModel.isCollected ? .red : .gray)
                 }
-                .buttonStyle(ScaleButtonStyle())
+                .buttonStyle(.scale)
+                .alert("需要登录", isPresented: $viewModel.showLoginAlert) {
+                    Button("取消", role: .cancel) { }
+                    Button("去登录") {
+                        profileViewModel.showLogin()
+                    }
+                } message: {
+                    Text("收藏功能需要登录后才能使用")
+                }
             }
             .padding(.top, 4)
         }
@@ -125,6 +136,9 @@ struct ProjectCardView: View {
         .background(Color(.systemBackground))
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.08), radius: 8, y: 2)
+        .onAppear {
+            viewModel.checkCollectionStatus(articleId: article.id)
+        }
     }
 }
 
@@ -158,7 +172,7 @@ struct ProjectCardView_Previews: PreviewProvider {
             ProjectCardView(article: Article(
                 id: 3,
                 title: "无图片的文章标题",
-                desc: "这是一篇没有图片的文章描述，应该显示更多的文本内容。这是一篇没有图片的文章描述，应该显示更多的文本内容。",
+                desc: "这是一篇没有图片的文章描述，应该显示更多的文本内容。",
                 link: "https://example.com",
                 author: "作者名",
                 shareUser: nil,
@@ -170,32 +184,13 @@ struct ProjectCardView_Previews: PreviewProvider {
                 type: 0,
                 fresh: true,
                 tags: [],
-                envelopePic: nil,  // 无图片
-                projectLink: nil,   // 无项目链接
+                envelopePic: nil,
+                projectLink: nil,
                 apkLink: nil,
                 prefix: nil
             ))
         }
         .padding()
         .previewLayout(.sizeThatFits)
-    }
-}
-
-// 按压效果的按钮样式
-private struct ScaleButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.8 : 1)
-            .animation(.easeInOut(duration: 0.2), value: configuration.isPressed)
-    }
-}
-
-// 自定义按钮样式
-private struct ArticleCardButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .opacity(configuration.isPressed ? 0.7 : 1.0)
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .animation(.easeInOut(duration: 0.2), value: configuration.isPressed)
     }
 } 

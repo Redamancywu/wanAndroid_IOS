@@ -8,27 +8,35 @@
 import SwiftUI
 
 struct SquareView: View {
-    @StateObject private var viewModel = CategoryViewModel.shared
+    @StateObject private var viewModel = SquareViewModel()
     
     var body: some View {
-        ZStack {
-            if viewModel.isLoading && viewModel.squareArticles.isEmpty {
-                LoadingIndicator(message: "加载中...")
-            } else if let errorMessage = viewModel.errorMessage {
-                ErrorView(message: errorMessage) {
-                    Task {
-                        await viewModel.fetchSquareArticles(page: 0)
+        Group {
+            if viewModel.isLoading && viewModel.articles.isEmpty {
+                LoadingView("加载中...")
+            } else if let error = viewModel.error {
+                ErrorView(
+                    error: error,
+                    retryAction: {
+                        Task {
+                            await viewModel.fetchSquareArticles(page: 0)
+                        }
                     }
-                }
+                )
+            } else if viewModel.articles.isEmpty {
+                EmptyPlaceholderView(
+                    icon: "square.grid.2x2",
+                    title: "暂无广场文章",
+                    message: "稍后再来看看吧"
+                )
             } else {
                 ScrollView {
                     LazyVStack(spacing: 16) {
-                        ForEach(viewModel.squareArticles) { article in
+                        ForEach(viewModel.articles) { article in
                             SquareArticleCard(article: article)
                                 .padding(.horizontal)
                                 .onAppear {
-                                    // 加载更多
-                                    if article.id == viewModel.squareArticles.last?.id && viewModel.hasMoreData {
+                                    if article.id == viewModel.articles.last?.id && viewModel.hasMoreData {
                                         Task {
                                             await viewModel.fetchSquareArticles(page: viewModel.currentPage + 1)
                                         }
@@ -36,7 +44,7 @@ struct SquareView: View {
                                 }
                         }
                         
-                        if viewModel.isLoading && !viewModel.squareArticles.isEmpty {
+                        if viewModel.isLoading {
                             ProgressView()
                                 .padding()
                         }
@@ -48,8 +56,9 @@ struct SquareView: View {
                 }
             }
         }
+        .navigationTitle("广场")
         .task {
-            if viewModel.squareArticles.isEmpty {
+            if viewModel.articles.isEmpty {
                 await viewModel.fetchSquareArticles(page: 0)
             }
         }

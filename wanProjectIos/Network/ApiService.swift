@@ -92,4 +92,34 @@ class ApiService {
         let parameters = ["cid": cid]
         networkManager.request("/article/list/\(page)/json", parameters: parameters, completion: completion)
     }
+    
+    func request<T: Codable>(
+        _ path: String,
+        method: HTTPMethod = .get,
+        parameters: [String: Any]? = nil,
+        responseType: T.Type
+    ) async throws -> T {
+        return try await withCheckedThrowingContinuation { continuation in
+            networkManager.request(path,
+                                 method: method,
+                                 parameters: parameters) { (result: Result<T, NetworkError>) in
+                switch result {
+                case .success(let response):
+                    continuation.resume(returning: response)
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+    
+    // 获取公众号列表
+    func fetchWeChatArticles(completion: @escaping (Result<ApiResponse<[WeChatArticle]>, NetworkError>) -> Void) {
+        networkManager.request("/wxarticle/chapters/json", completion: completion)
+    }
+    
+    // 获取指定公众号的文章列表
+    func fetchWeChatArticleList(id: Int, page: Int, completion: @escaping (Result<ApiResponse<ArticleList>, NetworkError>) -> Void) {
+        networkManager.request("/wxarticle/list/\(id)/\(page)/json", completion: completion)
+    }
 }

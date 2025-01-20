@@ -8,34 +8,34 @@
 import SwiftUI
 
 struct ErrorView: View {
-    let message: String
+    let error: Error
     let retryAction: () -> Void
     
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 40))
-                .foregroundColor(.red)
+                .font(.system(size: 48))
+                .foregroundColor(.orange)
             
-            Text("加载失败")
+            Text("出错了")
                 .font(.headline)
             
-            Text(message)
+            Text(error.localizedDescription)
                 .font(.subheadline)
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal)
             
-            Button(action: retryAction) {
-                Label("重试", systemImage: "arrow.clockwise")
+            Button {
+                retryAction()
+            } label: {
+                Text("重试")
                     .foregroundColor(.white)
                     .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
+                    .padding(.vertical, 8)
                     .background(Color.blue)
-                    .cornerRadius(8)
+                    .cornerRadius(16)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
+        .padding()
     }
 } 

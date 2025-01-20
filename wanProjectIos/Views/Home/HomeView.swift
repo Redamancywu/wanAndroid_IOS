@@ -22,24 +22,32 @@ struct HomeView: View {
                 SearchBar(text: $searchText)
                     .padding()
                 
-                if viewModel.isLoading {
-                    LoadingView(message: "加载中...")
-                } else if let errorMessage = viewModel.errorMessage {
-                    ErrorView(message: errorMessage) {
-                        Task {
-                            await viewModel.loadInitialData()
-                        }
-                    }
-                } else {
-                    contentView
+                mainContent
+            }
+            .refreshable {
+                Task {
+                    await viewModel.refreshData()
+                    await projectViewModel.refreshData()
                 }
             }
         }
-        .refreshable {
-            Task {
-                await viewModel.refreshData()
-                await projectViewModel.refreshData()
-            }
+    }
+    
+    @ViewBuilder
+    private var mainContent: some View {
+        if viewModel.isLoading {
+            LoadingView("加载中...")
+        } else if let error = viewModel.error {
+            ErrorView(
+                error: error,
+                retryAction: {
+                    Task {
+                        await viewModel.refreshData()
+                    }
+                }
+            )
+        } else {
+            contentView
         }
     }
     

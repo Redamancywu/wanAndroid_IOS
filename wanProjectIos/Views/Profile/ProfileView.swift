@@ -2,11 +2,7 @@ import SwiftUI
 import SafariServices
 
 struct ProfileView: View {
-    // 用户基本信息
-    @State private var username = "游客"
-    @State private var isLoggedIn = false
-    @State private var coinCount = 0  // 添加积分状态
-    @State private var showLoginAlert = false  // 添加登录提示状态
+    @StateObject private var viewModel = ProfileViewModel()
     
     // 功能列表数据
     let functionItems: [[FunctionItem]] = [
@@ -41,15 +37,17 @@ struct ProfileView: View {
                 }
                 .padding()
             }
-            .navigationTitle("我的")
             .background(Color(.systemGroupedBackground).ignoresSafeArea())
-            .alert("需要登录", isPresented: $showLoginAlert) {
+            .alert("需要登录", isPresented: $viewModel.showLoginAlert) {
                 Button("取消", role: .cancel) { }
                 Button("去登录") {
-                    // TODO: 处理登录逻辑
+                    viewModel.showLogin()
                 }
             } message: {
                 Text("该功能需要登录后才能使用")
+            }
+            .sheet(isPresented: $viewModel.showLoginSheet) {
+                LoginView(viewModel: viewModel)
             }
         }
     }
@@ -57,27 +55,52 @@ struct ProfileView: View {
     // 用户信息卡片
     private var userInfoCard: some View {
         VStack(spacing: 12) {
-            // 用户名和积分
             VStack(spacing: 8) {
-                Text(username)
+                Text(viewModel.username)
                     .font(.title2)
                     .fontWeight(.medium)
                 
-                if isLoggedIn {
-                    HStack(spacing: 4) {
-                        Image(systemName: "dollarsign.circle.fill")
-                            .foregroundColor(.orange)
-                        Text("\(coinCount) 积分")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
+                if viewModel.isLoggedIn {
+                    HStack(spacing: 16) {
+                        // 积分信息
+                        VStack(spacing: 4) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "dollarsign.circle.fill")
+                                    .foregroundColor(.orange)
+                                Text("\(viewModel.coinCount)")
+                                    .foregroundColor(.primary)
+                            }
+                            Text("积分")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                        
+                        // 等级信息
+                        VStack(spacing: 4) {
+                            Text("Lv.\(viewModel.level)")
+                                .foregroundColor(.primary)
+                            Text("等级")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                        
+                        // 排名信息
+                        VStack(spacing: 4) {
+                            Text(viewModel.rank)
+                                .foregroundColor(.primary)
+                            Text("排名")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
                     }
+                    .padding(.top, 4)
                 }
             }
             
             // 登录/注册按钮
-            if !isLoggedIn {
+            if !viewModel.isLoggedIn {
                 Button {
-                    // TODO: 处理登录逻辑
+                    viewModel.showLogin()
                 } label: {
                     Text("登录/注册")
                         .foregroundColor(.blue)
@@ -115,10 +138,10 @@ struct ProfileView: View {
     // 功能单元格
     private func functionCell(item: FunctionItem) -> some View {
         Group {
-            if item.requiresLogin && !isLoggedIn {
+            if item.requiresLogin && !viewModel.isLoggedIn {
                 // 需要登录的功能，但未登录时显示按钮
                 Button {
-                    showLoginAlert = true
+                    viewModel.showLogin()
                 } label: {
                     functionCellContent(item: item)
                 }
@@ -166,7 +189,7 @@ struct ProfileView: View {
             Spacer()
             
             if item.title == "我的积分" {
-                Text("\(coinCount)")
+                Text("\(viewModel.coinCount)")
                     .font(.system(size: 14))
                     .foregroundColor(.gray)
                     .padding(.trailing, 4)

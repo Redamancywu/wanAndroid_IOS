@@ -1,15 +1,18 @@
 import SwiftUI
 
 struct LoadingView: View {
-    let message: String
+    let text: String
+    
+    init(_ text: String = "加载中...") {
+        self.text = text
+    }
     
     var body: some View {
         VStack(spacing: 16) {
             ProgressView()
-                .scaleEffect(1.2)
-            
-            Text(message)
-                .font(.subheadline)
+                .scaleEffect(1.5)
+            Text(text)
+                .font(.system(size: 14))
                 .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

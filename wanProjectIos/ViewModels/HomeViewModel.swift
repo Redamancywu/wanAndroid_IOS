@@ -9,11 +9,12 @@ import Foundation
 
 @MainActor
 class HomeViewModel: ObservableObject {
-    @Published var banners: [Banner] = []
-    @Published var articles: [Article] = []
+    @Published private(set) var banners: [Banner] = []
+    @Published private(set) var articles: [Article] = []
     @Published var harmonyArticles: [Article] = []
     @Published var recommendArticles: [Article] = []
-    @Published var isLoading = false
+    @Published private(set) var isLoading = false
+    @Published var error: Error?  // 添加错误属性
     @Published var errorMessage: String?
     @Published var tutorials: [Tutorial] = []
     
@@ -263,15 +264,43 @@ class HomeViewModel: ObservableObject {
     
     // 刷新方法需要重置初始加载标记
     func refreshData() async {
-        isInitialLoad = true  // 重置标记以允许重新加载
-        // 重置加载状态
-        hasLoadedBanners = false
-        hasLoadedArticles = false
-        hasLoadedHarmonyArticles = false
-        hasLoadedTutorialArticles = false
+        isLoading = true
+        error = nil
         
-        // 重新加载数据
-        await loadInitialData()
+        do {
+            async let bannersResponse = apiService.request(
+                "/banner/json",
+                method: .get,
+                responseType: ApiResponse<[Banner]>.self
+            )
+            async let articlesResponse = apiService.request(
+                "/article/list/0/json",
+                method: .get,
+                responseType: ApiResponse<ArticleList>.self
+            )
+            
+            let (bannerResult, articleResult) = await (try bannersResponse, try articlesResponse)
+            
+            if bannerResult.errorCode == 0 {
+                banners = bannerResult.data
+            } else {
+                throw ApiError.message(bannerResult.errorMsg)
+            }
+            
+            if articleResult.errorCode == 0 {
+                articles = articleResult.data.datas
+            } else {
+                throw ApiError.message(articleResult.errorMsg)
+            }
+        } catch {
+            self.error = error
+        }
+        
+        isLoading = false
+    }
+    
+    func refresh() async {
+        await refreshData()
     }
     
     // 加载更多推荐文章

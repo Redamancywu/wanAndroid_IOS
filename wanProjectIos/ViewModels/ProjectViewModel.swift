@@ -276,6 +276,16 @@ class ProjectViewModel: ObservableObject {
                 errorMessage = "服务器未返回数据"
             case .decodingFailed(let error):
                 errorMessage = "数据解析失败: \(error.localizedDescription)"
+            case .networkNotConnected:
+                errorMessage = "网络连接不可用，请检查网络设置"
+            case .timeout:
+                errorMessage = "请求超时，请检查网络连接"
+            case .hostNotFound:
+                errorMessage = "无法连接到服务器，请检查网络设置"
+            case .secureConnectionFailed:
+                errorMessage = "安全连接失败，请检查网络设置"
+            case .invalidStatusCode(let code):
+                errorMessage = "服务器响应异常(状态码: \(code))"
             }
         } else {
             errorMessage = error.localizedDescription

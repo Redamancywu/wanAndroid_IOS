@@ -67,21 +67,13 @@ struct HarmonyCardView: View {
                     Image(systemName: isCollected ? "heart.fill" : "heart")
                         .foregroundColor(isCollected ? .red : .gray)
                 }
-                .buttonStyle(ScaleButtonStyle())
+                .buttonStyle(.scale)
             }
         }
         .padding()
         .background(Color(.systemBackground))
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
-    }
-}
-
-private struct ScaleButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.8 : 1)
-            .animation(.easeInOut(duration: 0.2), value: configuration.isPressed)
     }
 }
 
