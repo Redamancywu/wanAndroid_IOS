@@ -31,6 +31,9 @@ class HomeViewModel: ObservableObject {
     private var isLoadingMore = false
     private var hasMoreData = true
     
+    // 添加一个标记来追踪是否是首次加载
+    private var isInitialLoad = true
+    
     init() {
         HiLog.i("HomeViewModel initialized")
         Task {
@@ -39,8 +42,9 @@ class HomeViewModel: ObservableObject {
     }
     
     func loadInitialData() async {
-        guard !hasLoadedBanners else {
-            HiLog.i("Banner数据已加载，跳过")
+        // 如果不是首次加载且数据已存在，直接返回
+        if !isInitialLoad && !banners.isEmpty {
+            HiLog.i("数据已加载，跳过重复加载")
             return
         }
         
@@ -80,6 +84,7 @@ class HomeViewModel: ObservableObject {
         
         isLoading = false
         hasLoadedBanners = true
+        isInitialLoad = false  // 标记首次加载完成
     }
     
     func fetchBanners() async {
@@ -256,8 +261,9 @@ class HomeViewModel: ObservableObject {
         hasLoadedTutorialArticles = true
     }
     
-    // 添加刷新方法
+    // 刷新方法需要重置初始加载标记
     func refreshData() async {
+        isInitialLoad = true  // 重置标记以允许重新加载
         // 重置加载状态
         hasLoadedBanners = false
         hasLoadedArticles = false

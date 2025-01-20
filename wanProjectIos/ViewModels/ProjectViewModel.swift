@@ -43,6 +43,8 @@ class ProjectViewModel: ObservableObject {
     
     @Published private(set) var loadingState = LoadingState.idle
     
+    private var isInitialLoad = true
+    
     init() {
         HiLog.i("ProjectViewModel initialized")
         Task {
@@ -52,19 +54,21 @@ class ProjectViewModel: ObservableObject {
     
     // 公开的初始化加载方法
     func loadInitialData() async {
-        guard !hasLoadedCategories else {
-            HiLog.i("项目分类数据已加载，跳过")
+        // 如果不是首次加载且数据已存在，直接返回
+        if !isInitialLoad && !categories.isEmpty {
+            HiLog.i("项目数据已加载，跳过重复加载")
             return
         }
         
         isLoading = true
         await loadCategories()
         isLoading = false
-        hasLoadedCategories = true
+        isInitialLoad = false
     }
     
     // 刷新数据的方法
     func refreshData() async {
+        isInitialLoad = true
         // 重置加载状态
         hasLoadedCategories = false
         hasLoadedCrossPlatform = false

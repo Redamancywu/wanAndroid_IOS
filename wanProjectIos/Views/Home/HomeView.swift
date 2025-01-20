@@ -91,9 +91,12 @@ struct HomeView: View {
                         .tag(6)
                         .environmentObject(viewModel)
                 }
-                .id(selectedTab)  // 添加 id 以确保视图正确刷新
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+            .onChange(of: selectedTab) { newValue in
+                // 切换标签页时不触发加载
+                HiLog.i("切换到标签页: \(tabs[newValue])")
+            }
         }
     }
 }
