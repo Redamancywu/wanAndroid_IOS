@@ -111,14 +111,25 @@ struct ArticleCard: View {
                         .foregroundColor(.blue)
                 }
                 .frame(height: 32)
+                //分类
+                if let chapterName = article.chapterName {
+                    HStack(spacing:6){
+                        Image(systemName: "folder.fill")
+                            .foregroundColor(.orange)
+                            .imageScale(.medium)
+                        Text(chapterName).font(.system(size:13)).foregroundColor(.orange)
+                    }
+                    .frame(height: 32)
+                }
                 
                 Spacer()
                 
                 // 日期
                 Text(article.niceDate)
                     .font(.system(size: 13))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.blue)
                     .frame(height: 32)
+                    
                 
                 // 操作按钮组
                 HStack(spacing: 16) {
