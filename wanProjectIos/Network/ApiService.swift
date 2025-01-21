@@ -18,6 +18,15 @@ enum ParameterEncoding {
     case urlEncoded
 }
 
+/// 热门搜索关键词
+struct HotKey: Codable, Identifiable {
+    let id: Int
+    let link: String
+    let name: String
+    let order: Int
+    let visible: Int
+}
+
 class ApiService {
     static let shared = ApiService()
     private let networkManager = NetworkManager.shared
@@ -345,6 +354,53 @@ class ApiService {
         if response.errorCode == 0 {
             return response.data
         } else {
+            throw ApiError.message(response.errorMsg)
+        }
+    }
+    
+    /// 搜索文章
+    func searchArticles(keyword: String, page: Int = 0, pageSize: Int? = 20) async throws -> ArticleList {
+        // 处理多个关键词，用空格分隔
+        let processedKeyword = keyword.trimmingCharacters(in: .whitespaces)
+        let params = ["k": processedKeyword]
+        
+        // 构建 URL
+        var url = "/article/query/\(page)/json"
+        if let size = pageSize {
+            url += "?page_size=\(max(1, min(40, size)))"
+        }
+        
+        HiLog.i("开始搜索文章，关键词：\(processedKeyword)，页码：\(page)，每页数量：\(pageSize ?? 20)")
+        let response: ApiResponse<ArticleList> = try await request(
+            url,
+            method: .post,
+            parameters: params,
+            responseType: ApiResponse<ArticleList>.self
+        )
+        
+        if response.errorCode == 0 {
+            HiLog.i("搜索成功，找到文章数：\(response.data.datas.count)")
+            return response.data
+        } else {
+            HiLog.e("搜索失败：\(response.errorMsg)")
+            throw ApiError.message(response.errorMsg)
+        }
+    }
+    
+    /// 获取搜索热词
+    func fetchHotKeys() async throws -> [HotKey] {
+        HiLog.i("开始获取搜索热词")
+        let response: ApiResponse<[HotKey]> = try await request(
+            "/hotkey/json",
+            method: .get,
+            responseType: ApiResponse<[HotKey]>.self
+        )
+        
+        if response.errorCode == 0 {
+            HiLog.i("获取热词成功，数量：\(response.data.count)")
+            return response.data
+        } else {
+            HiLog.e("获取热词失败：\(response.errorMsg)")
             throw ApiError.message(response.errorMsg)
         }
     }

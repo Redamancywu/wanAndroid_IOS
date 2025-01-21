@@ -12,6 +12,7 @@ struct HomeView: View {
     @State private var selectedTab = 0
     @StateObject private var viewModel = HomeViewModel()
     @StateObject private var projectViewModel = ProjectViewModel()
+    @State private var showSearch = false
     
     let tabs = ["短视频", "推荐文章", "所有项目", "跨平台应用", "资源聚合", "鸿蒙专栏", "教程"]
     
@@ -19,11 +20,15 @@ struct HomeView: View {
         NavigationView {
             VStack(spacing: 0) {
                 // 搜索栏
-                SearchBar(text: $searchText)
-                    .padding()
+                searchBar
                 
-                mainContent
+                if showSearch {
+                    SearchResultView(searchText: $searchText)
+                } else {
+                    mainContent
+                }
             }
+            .navigationBarTitleDisplayMode(.inline)
             .refreshable {
                 Task {
                     await viewModel.refreshData()
@@ -106,6 +111,40 @@ struct HomeView: View {
                 HiLog.i("切换到标签页: \(tabs[newValue])")
             }
         }
+    }
+    
+    private var searchBar: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.gray)
+            
+            TextField("搜索文章", text: $searchText)
+                .textFieldStyle(PlainTextFieldStyle())
+                .submitLabel(.search)
+                .onSubmit {
+                    // 键盘搜索按钮点击时触发搜索
+                    HiLog.i("键盘搜索按钮点击，关键词：\(searchText)")
+                    showSearch = true
+                }
+                .onChange(of: searchText) { newValue in
+                    showSearch = !newValue.isEmpty
+                    HiLog.i("搜索文本变化：\(newValue)")
+                }
+            
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                    showSearch = false
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.gray)
+                }
+            }
+        }
+        .padding(8)
+        .background(Color(.systemGray6))
+        .cornerRadius(8)
+        .padding()
     }
 }
 
