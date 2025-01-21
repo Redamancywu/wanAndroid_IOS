@@ -5,25 +5,38 @@ import SwiftUI
 class UserState: ObservableObject {
     static let shared = UserState()
     
+    // MARK: - Published Properties
     @Published private(set) var currentUser: LoginResponse?
     @Published private(set) var isLoggedIn = false
-    @AppStorage("token") private var token: String?
-    
     @Published var username = "游客"
     @Published var coinCount = 0
-    @Published private(set) var collectedArticles: Set<Int> = []  // 收藏的文章ID集合
     @Published var level: Int = 0
     @Published var rank: String = "--"
+    @Published private(set) var collectedArticles: Set<Int> = []
     
+    // MARK: - Private Properties
+    @AppStorage("token") private var token: String?
     private let userDefaults = UserDefaults.standard
-    private let apiService = UserApiService.shared
+    private let apiService = ApiService.shared
     
+    // MARK: - Initialization
     private init() {
-        // 从 UserDefaults 恢复用户状态
-        if let userData = UserDefaults.standard.data(forKey: "currentUser"),
+        restoreUserState()
+    }
+    
+    // MARK: - User State Management
+    private func restoreUserState() {
+        if let userData = userDefaults.data(forKey: "currentUser"),
            let user = try? JSONDecoder().decode(LoginResponse.self, from: userData) {
-            self.currentUser = user
-            self.isLoggedIn = true
+            currentUser = user
+            isLoggedIn = true
+            username = user.nickname
+            
+            // 恢复用户状态后加载收藏列表
+            Task {
+                await loadCollectedArticles()
+                await fetchUserInfo()
+            }
         }
     }
     
@@ -31,9 +44,15 @@ class UserState: ObservableObject {
         currentUser = user
         isLoggedIn = true
         token = user.token
-        username = user.nickname  // 更新用户名
+        username = user.nickname
         saveUserInfo(user)
-        // 发送通知
+        
+        // 登录后加载用户数据
+        Task {
+            await loadCollectedArticles()
+            await fetchUserInfo()
+        }
+        
         NotificationCenter.default.post(name: .userLoginStatusChanged, object: nil)
     }
     
@@ -46,21 +65,20 @@ class UserState: ObservableObject {
         level = 0
         rank = "--"
         collectedArticles.removeAll()
-        // 清除用户信息
         clearUserInfo()
-        // 发送通知
+        
         NotificationCenter.default.post(name: .userLoginStatusChanged, object: nil)
     }
     
+    // MARK: - User Info Management
     private func saveUserInfo(_ user: LoginResponse) {
-        let encoder = JSONEncoder()
-        if let encoded = try? encoder.encode(user) {
-            UserDefaults.standard.set(encoded, forKey: "currentUser")
+        if let encoded = try? JSONEncoder().encode(user) {
+            userDefaults.set(encoded, forKey: "currentUser")
         }
     }
     
     private func clearUserInfo() {
-        UserDefaults.standard.removeObject(forKey: "currentUser")
+        userDefaults.removeObject(forKey: "currentUser")
     }
     
     func fetchUserInfo() async {
@@ -70,32 +88,56 @@ class UserState: ObservableObject {
             self.level = coinInfo.level
             self.rank = coinInfo.rank
         } catch {
-            print("获取用户信息失败: \(error)")
+            HiLog.e("获取用户信息失败: \(error)")
         }
     }
     
-    func fetchCollectedArticles() async {
+    // MARK: - Collection Management
+    /// 加载收藏文章列表
+    func loadCollectedArticles(page: Int = 0, pageSize: Int? = nil) async {
+        guard isLoggedIn else { return }
+        
         do {
-            let articles = try await apiService.fetchCollectedArticles()
-            collectedArticles = Set(articles.map { $0.id })
+            let articleList = try await apiService.fetchCollectedArticles(page: page, pageSize: pageSize)
+            let newIds = Set(articleList.datas.map { $0.id })
+            
+            if page == 0 {
+                collectedArticles = newIds
+            } else {
+                collectedArticles.formUnion(newIds)
+            }
         } catch {
-            print("获取收藏列表失败: \(error)")
+            HiLog.e("加载收藏列表失败: \(error)")
         }
     }
     
+    /// 切换文章收藏状态
     func toggleCollect(articleId: Int) async throws {
-        guard isLoggedIn else {
-            throw ApiError.message("请先登录")
+        guard isLoggedIn else { throw UserError.needLogin }
+        
+        do {
+            if isCollected(articleId: articleId) {
+                try await apiService.uncollectFromList(articleId)
+                collectedArticles.remove(articleId)
+                HiLog.i("取消收藏成功")
+            } else {
+                try await apiService.collectInternalArticle(articleId)
+                collectedArticles.insert(articleId)
+                HiLog.i("收藏成功")
+            }
+        } catch {
+            HiLog.e("收藏操作失败: \(error)")
+            throw error
         }
-        // TODO: 实现收藏/取消收藏
     }
     
+    /// 检查文章是否已收藏
     func isCollected(articleId: Int) -> Bool {
-        // TODO: 实现收藏状态检查
-        return false
+        collectedArticles.contains(articleId)
     }
 }
 
+// MARK: - Error Types
 enum UserError: LocalizedError {
     case needLogin
     

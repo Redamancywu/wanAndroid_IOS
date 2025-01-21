@@ -204,8 +204,128 @@ class ApiService {
     func fetchWeChatArticleList(id: Int, page: Int, completion: @escaping (Result<ApiResponse<ArticleList>, NetworkError>) -> Void) {
         networkManager.request("/wxarticle/list/\(id)/\(page)/json", completion: completion)
     }
+    
+    // MARK: - 收藏相关接口
+    
+    /// 获取收藏文章列表
+    func fetchCollectedArticles(page: Int = 0, pageSize: Int? = nil) async throws -> ArticleList {
+        var url = "/lg/collect/list/\(page)/json"
+        if let size = pageSize {
+            url += "?page_size=\(max(1, min(40, size)))"
+        }
+        
+        let response: ApiResponse<ArticleList> = try await request(
+            url,
+            method: .get,
+            responseType: ApiResponse<ArticleList>.self
+        )
+        
+        if response.errorCode == 0 {
+            return response.data
+        } else {
+            throw ApiError.message(response.errorMsg)
+        }
+    }
+    
+    /// 收藏站内文章
+    func collectInternalArticle(_ articleId: Int) async throws {
+        let response: ApiResponse<EmptyResponse> = try await request(
+            "/lg/collect/\(articleId)/json",
+            method: .post,
+            responseType: ApiResponse<EmptyResponse>.self
+        )
+        
+        if response.errorCode != 0 {
+            throw ApiError.message(response.errorMsg)
+        }
+    }
+    
+    /// 收藏站外文章
+    func collectExternalArticle(title: String, author: String, link: String) async throws {
+        let params = [
+            "title": title,
+            "author": author,
+            "link": link
+        ]
+        
+        let response: ApiResponse<EmptyResponse> = try await request(
+            "/lg/collect/add/json",
+            method: .post,
+            parameters: params,
+            responseType: ApiResponse<EmptyResponse>.self
+        )
+        
+        if response.errorCode != 0 {
+            throw ApiError.message(response.errorMsg)
+        }
+    }
+    
+    /// 更新收藏的文章
+    func updateCollectedArticle(articleId: Int, title: String, author: String, link: String) async throws {
+        let params = [
+            "title": title,
+            "author": author,
+            "link": link
+        ]
+        
+        let response: ApiResponse<EmptyResponse> = try await request(
+            "/lg/collect/user_article/update/\(articleId)/json",
+            method: .post,
+            parameters: params,
+            responseType: ApiResponse<EmptyResponse>.self
+        )
+        
+        if response.errorCode != 0 {
+            throw ApiError.message(response.errorMsg)
+        }
+    }
+    
+    /// 从文章列表取消收藏
+    func uncollectFromList(_ articleId: Int) async throws {
+        let response: ApiResponse<EmptyResponse> = try await request(
+            "/lg/uncollect_originId/\(articleId)/json",
+            method: .post,
+            responseType: ApiResponse<EmptyResponse>.self
+        )
+        
+        if response.errorCode != 0 {
+            throw ApiError.message(response.errorMsg)
+        }
+    }
+    
+    /// 从收藏页面取消收藏
+    func uncollectFromMyCollections(_ articleId: Int, originId: Int = -1) async throws {
+        let params = ["originId": originId]
+        
+        let response: ApiResponse<EmptyResponse> = try await request(
+            "/lg/uncollect/\(articleId)/json",
+            method: .post,
+            parameters: params,
+            responseType: ApiResponse<EmptyResponse>.self
+        )
+        
+        if response.errorCode != 0 {
+            throw ApiError.message(response.errorMsg)
+        }
+    }
+    
+    // MARK: - 用户信息相关接口
+    
+    /// 获取用户积分信息
+    func fetchCoinInfo() async throws -> CoinInfo {
+        let response: ApiResponse<CoinInfo> = try await request(
+            "/lg/coin/userinfo/json",
+            method: .get,
+            responseType: ApiResponse<CoinInfo>.self
+        )
+        
+        if response.errorCode == 0 {
+            return response.data
+        } else {
+            throw ApiError.message(response.errorMsg)
+        }
+    }
 }
-
 // 扩展 URLRequest 以方便打印请求头
 extension URLRequest {
     var allHTTPHeaders: [String: String]? {

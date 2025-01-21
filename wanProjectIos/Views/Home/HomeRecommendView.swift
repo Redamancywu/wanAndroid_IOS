@@ -113,7 +113,7 @@ struct ArticleCard: View {
                     Image(systemName: "person.circle.fill")
                         .foregroundColor(.blue)
                         .imageScale(.medium)
-                    Text(article.author ?? article.shareUser ?? "匿名")
+                    Text(article.author ?? article.shareUser ??  "匿名")
                         .font(.system(size: 13))
                         .foregroundColor(.blue)
                 }
