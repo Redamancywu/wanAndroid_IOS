@@ -74,33 +74,26 @@ struct HomeRecommendView: View {
 // 文章卡片
 struct ArticleCard: View {
     let article: Article
-    @StateObject private var viewModel = ArticleViewModel()
-    @AppStorage("ReadArticles") private var readArticles: [Int] = []
+    @EnvironmentObject private var userState: UserState
+    @State private var isCollected: Bool
+    @State private var showCollectError = false
+    @State private var errorMessage = ""
     @State private var showShareSheet = false
+    @State private var shareURL: URL?
+    
+    init(article: Article) {
+        self.article = article
+        _isCollected = State(initialValue: article.collect)
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // 新标签和标题
-            VStack(alignment: .leading, spacing: 8) {
-                if article.fresh {
-                    Text("新")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(Color.red.opacity(0.9))
-                                .shadow(color: Color.red.opacity(0.2), radius: 2, y: 1)
-                        )
-                }
-                
-                Text(article.title)
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundColor(readArticles.contains(article.id) ? .gray : .primary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            // 标题
+            Text(article.title)
+                .font(.system(size: 17, weight: .medium))
+                .foregroundColor(.primary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
             
             // 分割线
             Divider()
@@ -108,29 +101,16 @@ struct ArticleCard: View {
             
             // 底部信息和操作栏
             HStack(spacing: 12) {
-                // 作者或分享者
+                // 作者
                 HStack(spacing: 6) {
                     Image(systemName: "person.circle.fill")
                         .foregroundColor(.blue)
                         .imageScale(.medium)
-                    Text(article.author ?? article.shareUser ??  "匿名")
+                    Text(article.author ?? article.shareUser ?? "匿名")
                         .font(.system(size: 13))
                         .foregroundColor(.blue)
                 }
                 .frame(height: 32)
-                
-                // 分类
-                if let chapterName = article.chapterName {
-                    HStack(spacing: 6) {
-                        Image(systemName: "folder.fill")
-                            .foregroundColor(.orange)
-                            .imageScale(.medium)
-                        Text(chapterName)
-                            .font(.system(size: 13))
-                            .foregroundColor(.orange)
-                    }
-                    .frame(height: 32)
-                }
                 
                 Spacer()
                 
@@ -143,20 +123,19 @@ struct ArticleCard: View {
                 // 操作按钮组
                 HStack(spacing: 16) {
                     // 收藏按钮
-                    Button {
-                        Task {
-                            await viewModel.toggleCollect(articleId: article.id)
-                        }
-                    } label: {
-                        Image(systemName: viewModel.isCollected ? "heart.fill" : "heart")
-                            .foregroundColor(viewModel.isCollected ? .red : .secondary)
+                    Button(action: toggleCollect) {
+                        Image(systemName: isCollected ? "heart.fill" : "heart")
+                            .foregroundColor(isCollected ? .red : .secondary)
                             .imageScale(.medium)
                     }
                     .buttonStyle(ScaleButtonStyle())
                     
                     // 分享按钮
                     Button {
-                        showShareSheet = true
+                        if let url = URL(string: article.link ?? "") {
+                            shareURL = url
+                            showShareSheet = true
+                        }
                     } label: {
                         Image(systemName: "square.and.arrow.up")
                             .foregroundColor(.secondary)
@@ -181,12 +160,40 @@ struct ArticleCard: View {
         )
         .contentShape(Rectangle())
         .onTapToOpenWeb(url: article.link ?? "", title: article.title)
-        .onAppear {
-            viewModel.checkCollectionStatus(articleId: article.id)
+        .alert("收藏失败", isPresented: $showCollectError) {
+            Button("确定", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
         }
         .sheet(isPresented: $showShareSheet) {
-            if let url = URL(string: article.link ?? "") {
+            if let url = shareURL {
                 ShareSheet(activityItems: [url])
+            }
+        }
+        .onAppear {
+            // 更新收藏状态
+            isCollected = userState.isCollected(articleId: article.id)
+        }
+        // 监听收藏状态变化
+        .onReceive(NotificationCenter.default.publisher(for: .articleCollectionChanged)) { _ in
+            isCollected = userState.isCollected(articleId: article.id)
+        }
+    }
+    
+    private func toggleCollect() {
+        guard userState.isLoggedIn else {
+            errorMessage = "请先登录"
+            showCollectError = true
+            return
+        }
+        
+        Task {
+            do {
+                try await userState.toggleCollect(article: article)
+                isCollected.toggle()
+            } catch {
+                errorMessage = error.localizedDescription
+                showCollectError = true
             }
         }
     }

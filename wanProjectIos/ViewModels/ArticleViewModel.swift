@@ -3,19 +3,15 @@ import Foundation
 
 @MainActor
 class ArticleViewModel: ObservableObject {
-    @Published var isCollected = false
+    @Published var isCollected: Bool = false
     private let userState = UserState.shared
     
-    func checkCollectionStatus(articleId: Int) {
-        isCollected = userState.isCollected(articleId: articleId)
+    func toggleCollect(article: Article) async throws {
+        try await userState.toggleCollect(article: article)
+        isCollected.toggle()
     }
     
-    func toggleCollect(articleId: Int) async {
-        do {
-            try await userState.toggleCollect(articleId: articleId)
-            isCollected.toggle()
-        } catch {
-            HiLog.e("收藏失败: \(error)")
-        }
+    func checkCollectionStatus(article: Article) {
+        isCollected = userState.isCollected(articleId: article.id)
     }
 } 

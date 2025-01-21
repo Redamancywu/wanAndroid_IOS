@@ -89,9 +89,7 @@ struct ArticleCardView: View {
                 
                 // 收藏按钮
                 Button {
-                    Task {
-                        await viewModel.toggleCollect(articleId: article.id)
-                    }
+                    toggleCollect()
                 } label: {
                     Image(systemName: viewModel.isCollected ? "heart.fill" : "heart")
                         .foregroundColor(viewModel.isCollected ? .red : .gray)
@@ -123,10 +121,21 @@ struct ArticleCardView: View {
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.08), radius: 8, y: 2)
         .onAppear {
-            viewModel.checkCollectionStatus(articleId: article.id)
+            viewModel.checkCollectionStatus(article: article)
         }
         .onTapToOpenWeb(url: article.link ?? "", title: article.title)
         .withTapFeedback()
+    }
+    
+    private func toggleCollect() {
+        Task {
+            do {
+                try await viewModel.toggleCollect(article: article)
+            } catch {
+                // 处理错误
+                print("收藏失败: \(error)")
+            }
+        }
     }
 }
 

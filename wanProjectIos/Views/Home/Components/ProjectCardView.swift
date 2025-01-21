@@ -13,9 +13,43 @@ struct ProjectCardView: View {
     @StateObject private var viewModel = ProjectCardViewModel()
     @EnvironmentObject private var profileViewModel: ProfileViewModel
     @Environment(\.openURL) private var openURL
+    @State private var showShareSheet = false
+    @AppStorage("ReadArticles") private var readArticles: [Int] = []
     
     init(article: Article) {
         self.article = article
+    }
+    
+    private var actionButtons: some View {
+        HStack(spacing: 16) {
+            // 收藏按钮
+            Button {
+                toggleCollect()
+            } label: {
+                Image(systemName: viewModel.isCollected ? "heart.fill" : "heart")
+                    .foregroundColor(viewModel.isCollected ? .red : .gray)
+            }
+            .buttonStyle(.scale)
+            
+            // 分享按钮
+            Button {
+                showShareSheet = true
+            } label: {
+                Image(systemName: "square.and.arrow.up")
+                    .foregroundColor(.gray)
+            }
+            .buttonStyle(.scale)
+        }
+    }
+    
+    private func toggleCollect() {
+        Task {
+            do {
+                try await viewModel.toggleCollect(article: article)
+            } catch {
+                print("收藏失败: \(error)")
+            }
+        }
     }
     
     var body: some View {
@@ -113,23 +147,7 @@ struct ProjectCardView: View {
                 }
                 
                 // 收藏按钮
-                Button {
-                    Task {
-                        await viewModel.toggleCollect(articleId: article.id)
-                    }
-                } label: {
-                    Image(systemName: viewModel.isCollected ? "heart.fill" : "heart")
-                        .foregroundColor(viewModel.isCollected ? .red : .gray)
-                }
-                .buttonStyle(.scale)
-                .alert("需要登录", isPresented: $viewModel.showLoginAlert) {
-                    Button("取消", role: .cancel) { }
-                    Button("去登录") {
-                        profileViewModel.showLogin()
-                    }
-                } message: {
-                    Text("收藏功能需要登录后才能使用")
-                }
+                actionButtons
             }
             .padding(.top, 4)
         }
@@ -138,7 +156,7 @@ struct ProjectCardView: View {
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.08), radius: 8, y: 2)
         .onAppear {
-            viewModel.checkCollectionStatus(articleId: article.id)
+            viewModel.checkCollectionStatus(article: article)
         }
         .onTapToOpenWeb(url: article.link ?? "", title: article.title)
         .withTapFeedback()

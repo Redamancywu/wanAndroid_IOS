@@ -131,7 +131,7 @@ struct WeChatAccountSection: View {
                 
                 VStack(spacing: 0) {
                     ForEach(displayArticles) { article in
-                        ArticleRow(article: article)
+                        WeChatArticleRow(article: article)
                             .background(
                                 RoundedRectangle(cornerRadius: 8)
                                     .fill(Color(.systemBackground))
@@ -224,7 +224,7 @@ struct WeChatAccountView_Previews: PreviewProvider {
 }
 
 // 文章行视图
-struct ArticleRow: View {
+struct WeChatArticleRow: View {
     let article: Article
     @Environment(\.openURL) private var openURL
     @EnvironmentObject private var profileViewModel: ProfileViewModel
@@ -275,16 +275,12 @@ struct ArticleRow: View {
             
             // 收藏按钮
             Button {
-                Task {
-                    await viewModel.toggleCollect(articleId: article.id)
-                }
+                toggleCollect()
             } label: {
                 Image(systemName: viewModel.isCollected ? "heart.fill" : "heart")
                     .foregroundColor(viewModel.isCollected ? .red : .gray)
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
             }
-            .buttonStyle(ScaleButtonStyle())
+            .buttonStyle(.scale)
             
             // 分享按钮
             Button {
@@ -296,7 +292,7 @@ struct ArticleRow: View {
             }
         }
         .onAppear {
-            viewModel.checkCollectionStatus(articleId: article.id)
+            viewModel.checkCollectionStatus(article: article)
         }
         .sheet(isPresented: $showShareSheet) {
             if let url = URL(string: article.link ?? "") {
@@ -305,7 +301,18 @@ struct ArticleRow: View {
         }
         .background(Color(.systemBackground))
     }
+    
+    private func toggleCollect() {
+        Task {
+            do {
+                try await viewModel.toggleCollect(article: article)
+            } catch {
+                print("收藏失败: \(error)")
+            }
+        }
+    }
 }
+
 // 分享sheet
 struct ShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
@@ -417,9 +424,9 @@ struct WeChatAccountSection_Previews: PreviewProvider {
 }
 
 // 文章行视图预览
-struct ArticleRow_Previews: PreviewProvider {
+struct WeChatArticleRow_Previews: PreviewProvider {
     static var previews: some View {
-        ArticleRow(article: PreviewData.article)
+        WeChatArticleRow(article: PreviewData.article)
             .padding()
             .previewLayout(.sizeThatFits)
             .environmentObject(UserState.shared)

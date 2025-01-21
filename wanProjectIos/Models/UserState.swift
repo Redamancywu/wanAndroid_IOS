@@ -16,7 +16,7 @@ class UserState: ObservableObject {
     @Published var coinCount = 0
     @Published var level: Int = 0
     @Published var rank: String = "--"
-    @Published private(set) var collectedArticles: Set<Int> = []
+    @Published private(set) var collectedArticles: [Article] = []
     
     // MARK: - Private Properties
     @AppStorage("token") private var token: String?
@@ -53,14 +53,20 @@ class UserState: ObservableObject {
         
         // 登录后加载用户数据
         Task {
-            HiLog.i("用户登录成功，开始加载用户数据")
-            await loadCollectedArticles()
-            await fetchUserInfo()
+            HiLog.i("用户登录成功，用户名：\(username)")
             
-            // 打印 Cookie 状态
+            // 检查 Cookie
             if let cookies = HTTPCookieStorage.shared.cookies {
                 HiLog.i("登录后的 Cookies: \(cookies)")
+                for cookie in cookies {
+                    HiLog.i("Cookie: \(cookie.name) = \(cookie.value)")
+                }
+            } else {
+                HiLog.e("登录后没有找到 Cookie")
             }
+            
+            await loadCollectedArticles()
+            await fetchUserInfo()
         }
         
         NotificationCenter.default.post(name: .userLoginStatusChanged, object: nil)
@@ -104,43 +110,63 @@ class UserState: ObservableObject {
     
     // MARK: - Collection Management
     /// 加载收藏文章列表
-    func loadCollectedArticles(page: Int = 0, pageSize: Int? = nil) async {
-        guard isLoggedIn else { return }
-        
+    func loadCollectedArticles() async {
         do {
-            let articleList = try await apiService.fetchCollectedArticles(page: page, pageSize: pageSize)
-            let newIds = Set(articleList.datas.map { $0.id })
-            
-            if page == 0 {
-                collectedArticles = newIds
-            } else {
-                collectedArticles.formUnion(newIds)
-            }
-            HiLog.i("更新本地收藏状态成功，数量：\(collectedArticles.count)")
+            let articleList = try await apiService.fetchCollectedArticles()
+            collectedArticles = articleList.datas
+            HiLog.i("加载收藏文章成功，数量：\(collectedArticles.count)")
         } catch {
-            HiLog.e("加载收藏列表失败: \(error)")
+            HiLog.e("加载收藏文章失败: \(error)")
         }
     }
     
-    /// 切换文章收藏状态
-    func toggleCollect(articleId: Int) async throws {
-        guard isLoggedIn else { throw UserError.needLogin }
+    /// 收藏或取消收藏文章
+    func toggleCollect(article: Article) async throws {
+        HiLog.i("开始\(article.collect ? "取消收藏" : "收藏")文章: \(article.title)")
         
         do {
-            if isCollected(articleId: articleId) {
-                try await apiService.uncollectFromList(articleId)
-                collectedArticles.remove(articleId)
+            if article.collect {
+                if let originId = article.originId {
+                    // 从收藏页面取消收藏
+                    try await apiService.uncollectFromMyCollections(article.id, originId: originId)
+                    collectedArticles.removeAll { $0.id == article.id }
+                } else {
+                    // 从文章列表取消收藏
+                    try await apiService.uncollectFromList(article.id)
+                }
                 HiLog.i("取消收藏成功")
             } else {
-                try await apiService.collectInternalArticle(articleId)
-                collectedArticles.insert(articleId)
+                // 收藏文章
+                try await apiService.collectInternalArticle(article.id)
+                // 创建新的文章对象，设置 collect 为 true
+                let collectedArticle = Article(
+                    id: article.id,
+                    title: article.title,
+                    desc: article.desc,
+                    link: article.link,
+                    author: article.author,
+                    shareUser: article.shareUser,
+                    niceDate: article.niceDate,
+                    publishTime: article.publishTime,
+                    collect: true,
+                    superChapterName: article.superChapterName,
+                    chapterName: article.chapterName,
+                    type: article.type,
+                    fresh: article.fresh,
+                    tags: article.tags,
+                    envelopePic: article.envelopePic,
+                    projectLink: article.projectLink,
+                    apkLink: article.apkLink,
+                    prefix: article.prefix,
+                    originId: article.id  // 设置原始文章ID
+                )
+                collectedArticles.append(collectedArticle)
                 HiLog.i("收藏成功")
             }
             
             // 发送收藏状态变化通知
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                NotificationCenter.default.post(name: .articleCollectionChanged, object: nil)
-            }
+            NotificationCenter.default.post(name: .articleCollectionChanged, object: nil)
+            
         } catch {
             HiLog.e("收藏操作失败: \(error)")
             throw error
@@ -149,7 +175,7 @@ class UserState: ObservableObject {
     
     /// 检查文章是否已收藏
     func isCollected(articleId: Int) -> Bool {
-        collectedArticles.contains(articleId)
+        collectedArticles.contains { $0.id == articleId }
     }
 }
 

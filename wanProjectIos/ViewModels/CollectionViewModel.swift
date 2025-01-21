@@ -23,6 +23,14 @@ class CollectionViewModel: ObservableObject {
             return
         }
         
+        // 检查登录状态和 Cookie
+        HiLog.i("当前用户: \(userState.username)")
+        if let cookies = HTTPCookieStorage.shared.cookies {
+            HiLog.i("当前 Cookies: \(cookies)")
+        } else {
+            HiLog.e("没有找到任何 Cookie")
+        }
+        
         isLoading = true
         currentPage = 0
         error = nil
@@ -84,6 +92,12 @@ class CollectionViewModel: ObservableObject {
         do {
             HiLog.i("开始取消收藏，articleId: \(articleId), originId: \(originId ?? -1)")
             
+            // 找到要取消收藏的文章
+            guard let article = articles.first(where: { $0.id == articleId }) else {
+                HiLog.e("未找到要取消收藏的文章")
+                return
+            }
+            
             // 使用正确的 originId
             try await apiService.uncollectFromMyCollections(articleId, originId: originId ?? -1)
             
@@ -93,12 +107,18 @@ class CollectionViewModel: ObservableObject {
             }
             
             // 更新 UserState 中的收藏状态
-            try? await userState.toggleCollect(articleId: articleId)
+            try? await userState.toggleCollect(article: article)
             
             HiLog.i("取消收藏成功，剩余文章数：\(articles.count)")
         } catch {
             HiLog.e("取消收藏失败: \(error)")
         }
+    }
+    
+    func toggleCollect(article: Article) async throws {
+        try await userState.toggleCollect(article: article)
+        // 更新收藏状态
+        await loadCollections()
     }
     
     init() {
