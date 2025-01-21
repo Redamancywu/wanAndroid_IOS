@@ -13,10 +13,8 @@ struct ContactView: View {
         List {
             ForEach(contacts) { item in
                 if let url = item.url {
-                    Button {
-                        if let url = URL(string: url) {
-                            UIApplication.shared.open(url)
-                        }
+                    NavigationLink {
+                        WebView(url: url, title: item.title)
                     } label: {
                         contactItemView(item)
                     }

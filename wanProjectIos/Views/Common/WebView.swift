@@ -43,48 +43,36 @@ class WebViewManager {
 }
 
 // WebView 包装器
-struct WebView: UIViewRepresentable {
+struct WebView: View {
     let url: String
-    @Binding var isLoading: Bool
-    let manager = WebViewManager.shared
+    let title: String
     
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
+    var body: some View {
+        SafariView(url: URL(string: url)!)
+            .ignoresSafeArea()
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(title)
+    }
+}
+
+// SafariView 包装器
+struct SafariView: UIViewControllerRepresentable {
+    let url: URL
+    
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        let config = SFSafariViewController.Configuration()
+        config.entersReaderIfAvailable = false
+        config.barCollapsingEnabled = true
+        
+        let safariViewController = SFSafariViewController(url: url, configuration: config)
+        safariViewController.preferredControlTintColor = .systemBlue
+        safariViewController.dismissButtonStyle = .close
+        
+        return safariViewController
     }
     
-    func makeUIView(context: Context) -> WKWebView {
-        let webView = manager.getWebView(for: url)
-        webView.navigationDelegate = context.coordinator
-        
-        if let url = URL(string: url) {
-            let request = URLRequest(url: url)
-            webView.load(request)
-        }
-        
-        return webView
-    }
-    
-    func updateUIView(_ webView: WKWebView, context: Context) {}
-    
-    class Coordinator: NSObject, WKNavigationDelegate {
-        var parent: WebView
-        
-        init(_ parent: WebView) {
-            self.parent = parent
-        }
-        
-        func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-            parent.isLoading = true
-        }
-        
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            parent.isLoading = false
-        }
-        
-        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-            parent.isLoading = false
-            HiLog.e("网页加载失败: \(error.localizedDescription)")
-        }
+    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {
+        // 不需要更新
     }
 }
 
@@ -98,7 +86,7 @@ struct WebViewContainer: View {
     var body: some View {
         NavigationView {
             ZStack {
-                WebView(url: url, isLoading: $isLoading)
+                WebView(url: url, title: title)
                 
                 if isLoading {
                     LoadingView("加载中...")
@@ -162,5 +150,14 @@ struct WebViewContainer_Previews: PreviewProvider {
     static var previews: some View {
         WebViewContainer(url: "https://example.com", title: "示例网页")
             .environmentObject(UserState.shared)
+    }
+}
+
+// 预览
+struct WebView_Previews: PreviewProvider {
+    static var previews: some View {
+        NavigationView {
+            WebView(url: "https://www.example.com", title: "示例网页")
+        }
     }
 } 

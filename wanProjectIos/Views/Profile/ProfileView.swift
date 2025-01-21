@@ -253,20 +253,6 @@ struct FunctionItem: Identifiable, Equatable {
         lhs.title == rhs.title && lhs.icon == rhs.icon
     }
 }
-
-// SafariView 用于在应用内打开网页
-struct SafariView: UIViewControllerRepresentable {
-    let url: URL
-    
-    func makeUIViewController(context: UIViewControllerRepresentableContext<SafariView>) -> SFSafariViewController {
-        return SFSafariViewController(url: url)
-    }
-    
-    func updateUIViewController(_ uiViewController: SFSafariViewController, context: UIViewControllerRepresentableContext<SafariView>) {
-        // 不需要更新
-    }
-}
-
 // 用户数据项组件
 struct UserDataItem: View {
     let icon: String
