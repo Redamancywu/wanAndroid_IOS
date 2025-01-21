@@ -278,5 +278,7 @@ struct UserDataItem: View {
 struct ProfileView_Previews: PreviewProvider {
     static var previews: some View {
         ProfileView()
+            .environmentObject(UserState.shared)
+            .environmentObject(ProfileViewModel())
     }
 } 

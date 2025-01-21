@@ -38,7 +38,8 @@ struct PreviewData {
         envelopePic: nil,
         projectLink: nil,
         apkLink: nil,
-        prefix: nil
+        prefix: nil,
+        originId: nil
     )
     
     static let sharedArticle = Article(
@@ -59,7 +60,8 @@ struct PreviewData {
         envelopePic: nil,
         projectLink: nil,
         apkLink: nil,
-        prefix: nil
+        prefix: nil,
+        originId: nil
     )
     
     static let projectArticle = Article(
@@ -80,7 +82,8 @@ struct PreviewData {
         envelopePic: "https://example.com/image.jpg",
         projectLink: "https://github.com/example",
         apkLink: nil,
-        prefix: nil
+        prefix: nil,
+        originId: nil
     )
     
     static let projectArticleNoImage = Article(
@@ -101,6 +104,7 @@ struct PreviewData {
         envelopePic: nil,
         projectLink: "https://github.com/example",
         apkLink: nil,
-        prefix: nil
+        prefix: nil,
+        originId: nil
     )
 } 

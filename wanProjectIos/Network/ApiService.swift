@@ -113,14 +113,24 @@ class ApiService {
         responseType: T.Type,
         encoding: ParameterEncoding = .json
     ) async throws -> T {
-        // 构建基础 URL
         guard let url = URL(string: baseURL + path) else {
             throw ApiError.message("Invalid URL")
         }
         
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
-        request.timeoutInterval = 30
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // 添加登录 Cookie
+        if let cookies = HTTPCookieStorage.shared.cookies(for: url) {
+            let cookieHeaders = HTTPCookie.requestHeaderFields(with: cookies)
+            for (key, value) in cookieHeaders {
+                request.setValue(value, forHTTPHeaderField: key)
+            }
+            HiLog.i("请求添加的 Cookies: \(cookies)")
+        } else {
+            HiLog.e("没有找到 Cookie")
+        }
         
         // 处理参数
         if let parameters = parameters {
@@ -170,6 +180,7 @@ class ApiService {
         if let headerFields = httpResponse.allHeaderFields as? [String: String] {
             let cookies = HTTPCookie.cookies(withResponseHeaderFields: headerFields, for: url)
             HTTPCookieStorage.shared.setCookies(cookies, for: url, mainDocumentURL: nil)
+            HiLog.i("响应保存的 Cookies: \(cookies)")
         }
         
         // 检查错误状态码
@@ -214,6 +225,12 @@ class ApiService {
             url += "?page_size=\(max(1, min(40, size)))"
         }
         
+        HiLog.i("开始请求收藏列表，URL: \(url)")
+        // 打印 Cookie
+        if let cookies = HTTPCookieStorage.shared.cookies {
+            HiLog.i("当前 Cookies: \(cookies)")
+        }
+        
         let response: ApiResponse<ArticleList> = try await request(
             url,
             method: .get,
@@ -221,8 +238,10 @@ class ApiService {
         )
         
         if response.errorCode == 0 {
+            HiLog.i("收藏列表请求成功，文章数：\(response.data.datas.count)")
             return response.data
         } else {
+            HiLog.e("收藏列表请求失败：\(response.errorMsg)")
             throw ApiError.message(response.errorMsg)
         }
     }
@@ -294,9 +313,10 @@ class ApiService {
     }
     
     /// 从收藏页面取消收藏
-    func uncollectFromMyCollections(_ articleId: Int, originId: Int = -1) async throws {
+    func uncollectFromMyCollections(_ articleId: Int, originId: Int) async throws {
         let params = ["originId": originId]
         
+        HiLog.i("取消收藏请求，articleId: \(articleId), originId: \(originId)")
         let response: ApiResponse<EmptyResponse> = try await request(
             "/lg/uncollect/\(articleId)/json",
             method: .post,
@@ -305,8 +325,11 @@ class ApiService {
         )
         
         if response.errorCode != 0 {
+            HiLog.e("取消收藏失败：\(response.errorMsg)")
             throw ApiError.message(response.errorMsg)
         }
+        
+        HiLog.i("取消收藏成功")
     }
     
     // MARK: - 用户信息相关接口

@@ -98,7 +98,8 @@ struct HarmonyCardView_Previews: PreviewProvider {
             envelopePic: nil,
             projectLink: nil,
             apkLink: nil,
-            prefix: nil
+            prefix: nil,
+            originId: nil
         ))
         .padding()
         .previewLayout(.sizeThatFits)

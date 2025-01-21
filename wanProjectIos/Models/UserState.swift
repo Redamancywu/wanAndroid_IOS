@@ -1,6 +1,10 @@
 import Foundation
 import SwiftUI
 
+extension Notification.Name {
+    static let articleCollectionChanged = Notification.Name("articleCollectionChanged")
+}
+
 @MainActor
 class UserState: ObservableObject {
     static let shared = UserState()
@@ -49,8 +53,14 @@ class UserState: ObservableObject {
         
         // 登录后加载用户数据
         Task {
+            HiLog.i("用户登录成功，开始加载用户数据")
             await loadCollectedArticles()
             await fetchUserInfo()
+            
+            // 打印 Cookie 状态
+            if let cookies = HTTPCookieStorage.shared.cookies {
+                HiLog.i("登录后的 Cookies: \(cookies)")
+            }
         }
         
         NotificationCenter.default.post(name: .userLoginStatusChanged, object: nil)
@@ -106,6 +116,7 @@ class UserState: ObservableObject {
             } else {
                 collectedArticles.formUnion(newIds)
             }
+            HiLog.i("更新本地收藏状态成功，数量：\(collectedArticles.count)")
         } catch {
             HiLog.e("加载收藏列表失败: \(error)")
         }
@@ -124,6 +135,11 @@ class UserState: ObservableObject {
                 try await apiService.collectInternalArticle(articleId)
                 collectedArticles.insert(articleId)
                 HiLog.i("收藏成功")
+            }
+            
+            // 发送收藏状态变化通知
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                NotificationCenter.default.post(name: .articleCollectionChanged, object: nil)
             }
         } catch {
             HiLog.e("收藏操作失败: \(error)")

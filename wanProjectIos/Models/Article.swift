@@ -26,6 +26,7 @@ struct Article: Codable, Identifiable, Equatable {
     let projectLink: String?    // 项目链接
     let apkLink: String?        // APK下载链接
     let prefix: String?         // 前缀
+    let originId: Int?          // 添加 originId 字段
     
     // 实现 Equatable 协议
     static func == (lhs: Article, rhs: Article) -> Bool {
@@ -51,6 +52,7 @@ struct Article: Codable, Identifiable, Equatable {
         case projectLink
         case apkLink
         case prefix
+        case originId = "originId"
     }
 }
 

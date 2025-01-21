@@ -50,7 +50,8 @@ struct MockData {
             envelopePic: "https://www.wanandroid.com/blogimgs/89868c9a-e793-46f3-a239-751246951b7f.png",
             projectLink: "https://github.com/example/demo",
             apkLink: nil,
-            prefix: nil
+            prefix: nil,
+            originId: nil
         ),
         Article(
             id: 2,
@@ -72,7 +73,8 @@ struct MockData {
             envelopePic: "https://www.wanandroid.com/blogimgs/89868c9a-e793-46f3-a239-751246951b7f.png",
             projectLink: "https://github.com/example/kotlin-demo",
             apkLink: nil,
-            prefix: nil
+            prefix: nil,
+            originId: nil
         )
     ]
 } 
