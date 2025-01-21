@@ -78,18 +78,22 @@ struct WeChatAccountSection: View {
         VStack(alignment: .leading, spacing: 12) {
             // 公众号头部信息
             HStack {
-                Text(account.name)
-                    .font(.headline)
-                    .foregroundColor(.primary)
+                Label {
+                    Text(account.name)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(.primary)
+                } icon: {
+                    Image(systemName: "newspaper.fill")
+                        .foregroundColor(.blue)
+                        .imageScale(.large)
+                }
                 
                 Spacer()
                 
                 Button {
-                    HiLog.i("\(isExpanded ? "收起" : "展开")\(account.name)的文章列表")
-                    withAnimation {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                         isExpanded.toggle()
                         if isExpanded {
-                            // 展开时加载更多文章
                             Task {
                                 await viewModel.loadMore()
                             }
@@ -99,15 +103,22 @@ struct WeChatAccountSection: View {
                     HStack(spacing: 4) {
                         Text(isExpanded ? "收起" : "更多")
                             .font(.subheadline)
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.right")
-                            .font(.caption)
+                            .fontWeight(.medium)
+                        Image(systemName: isExpanded ? "chevron.up.circle.fill" : "chevron.right.circle.fill")
+                            .imageScale(.small)
                     }
                     .foregroundColor(.blue)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 12)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(20)
                 }
+                .buttonStyle(ScaleButtonStyle())
             }
             .padding(.horizontal)
             .padding(.top)
             
+            // 文章列表
             if let error = viewModel.error {
                 ErrorView(error: error) {
                     Task {
@@ -116,17 +127,23 @@ struct WeChatAccountSection: View {
                 }
                 .padding()
             } else if let articles = viewModel.articles {
-                // 文章列表
-                ForEach(isExpanded ? articles : Array(articles.prefix(3))) { article in
-                    ArticleRow(article: article)
-                    
-                    if article != (isExpanded ? articles.last : articles.prefix(3).last) {
-                        Divider()
+                let displayArticles = isExpanded ? articles : Array(articles.prefix(3))
+                
+                VStack(spacing: 0) {
+                    ForEach(displayArticles) { article in
+                        ArticleRow(article: article)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color(.systemBackground))
+                                    .shadow(color: Color.black.opacity(0.03), radius: 3, y: 1)
+                            )
                             .padding(.horizontal)
+                            .padding(.vertical, 4)
                     }
                 }
                 
-                if isExpanded {
+                // 加载更多按钮
+                if isExpanded && articles.count >= 10 {
                     if viewModel.hasMoreData {
                         Button {
                             Task {
@@ -138,59 +155,70 @@ struct WeChatAccountSection: View {
                                     ProgressView()
                                         .scaleEffect(0.8)
                                     Text("加载中...")
+                                        .font(.subheadline)
                                 } else {
                                     Text("加载更多")
-                                    Image(systemName: "arrow.down.circle")
+                                        .font(.subheadline)
+                                    Image(systemName: "arrow.down.circle.fill")
+                                        .imageScale(.small)
                                 }
                             }
                             .frame(maxWidth: .infinity)
                             .foregroundColor(.blue)
-                            .padding(.vertical, 8)
+                            .padding(.vertical, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.blue.opacity(0.05))
+                                    .shadow(color: Color.black.opacity(0.03), radius: 3, y: 1)
+                            )
+                            .padding(.horizontal)
+                            .padding(.top, 8)
                         }
+                        .buttonStyle(ScaleButtonStyle())
                         .disabled(viewModel.isLoadingMore)
                     } else {
-                        Text("没有更多文章了")
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                        Text("没有更多了")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 4)
-                    }
-                    
-                    Divider()
-                        .padding(.horizontal)
-                    
-                    // 收起按钮
-                    Button {
-                        withAnimation(.easeInOut) {
-                            isExpanded = false
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Text("收起")
-                                .font(.subheadline)
-                            Image(systemName: "chevron.up")
-                                .font(.caption)
-                        }
-                        .foregroundColor(.gray)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
+                            .padding(.vertical, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color(.systemGray6))
+                            )
+                            .padding(.horizontal)
+                            .padding(.top, 8)
                     }
                 }
-            } else {
-                ProgressView()
-                    .frame(maxWidth: .infinity)
-                    .padding()
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: isExpanded)
+        .padding(.bottom, 12)
         .background(Color(.systemBackground))
         .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.08), radius: 8, y: 2)
-        .onAppear {
-            HiLog.i("加载公众号区块: \(account.name)")
-            Task {
-                await viewModel.fetchArticles(accountId: account.id)
-            }
+        .shadow(
+            color: isExpanded ? Color.blue.opacity(0.1) : Color.black.opacity(0.05),
+            radius: isExpanded ? 8 : 5,
+            y: isExpanded ? 4 : 2
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(isExpanded ? Color.blue.opacity(0.2) : Color.clear, lineWidth: 1)
+        )
+        .scaleEffect(isExpanded ? 1.01 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isExpanded)
+        .task {
+            await viewModel.fetchArticles(accountId: account.id)
+        }
+    }
+}
+
+// 预览
+struct WeChatAccountView_Previews: PreviewProvider {
+    static var previews: some View {
+        NavigationStack {
+            WeChatAccountView()
+                .navigationTitle("公众号")
+                .environmentObject(UserState.shared)
         }
     }
 }
@@ -210,11 +238,11 @@ struct ArticleRow: View {
             // 文章内容按钮
             VStack(alignment: .leading, spacing: 8) {
                 Text(article.title)
-                    .font(.system(size: 15))
+                    .font(.system(size: 15, weight: .medium))
                     .foregroundColor(readArticles.contains(article.id) ? .gray : .primary)
                     .lineLimit(2)
                 
-                HStack {
+                HStack(spacing: 8) {
                     if let author = article.author {
                         Label(author, systemImage: "person.circle")
                             .font(.caption)
@@ -229,17 +257,19 @@ struct ArticleRow: View {
                     
                     if article.fresh {
                         Text("新")
-                            .font(.caption)
+                            .font(.caption2)
+                            .fontWeight(.medium)
                             .foregroundColor(.white)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(Color.red)
+                            .background(Color.red.opacity(0.9))
                             .cornerRadius(4)
                     }
                 }
             }
             .padding(.horizontal)
             .padding(.vertical, 8)
+            .contentShape(Rectangle())
             .onTapToOpenWeb(url: article.link ?? "", title: article.title)
             .withTapFeedback()
             
@@ -252,15 +282,9 @@ struct ArticleRow: View {
                 Image(systemName: viewModel.isCollected ? "heart.fill" : "heart")
                     .foregroundColor(viewModel.isCollected ? .red : .gray)
                     .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
-            .alert("需要登录", isPresented: $viewModel.showLoginAlert) {
-                Button("取消", role: .cancel) { }
-                Button("去登录") {
-                    profileViewModel.showLogin()
-                }
-            } message: {
-                Text("收藏功能需要登录后才能使用")
-            }
+            .buttonStyle(ScaleButtonStyle())
             
             // 分享按钮
             Button {
@@ -279,9 +303,9 @@ struct ArticleRow: View {
                 ShareSheet(activityItems: [url])
             }
         }
+        .background(Color(.systemBackground))
     }
 }
-
 // 分享sheet
 struct ShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
@@ -377,18 +401,6 @@ class WeChatAccountSectionViewModel: ObservableObject {
             self.error = error
         }
         isLoadingMore = false
-    }
-}
-
-// 主视图预览
-struct WeChatAccountView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationStack {
-            WeChatAccountView()
-                .navigationTitle("公众号")
-                .environmentObject(UserState.shared)
-                .environmentObject(ProfileViewModel())
-        }
     }
 }
 
