@@ -14,6 +14,11 @@ struct LoginView: View {
                             .resizable()
                             .frame(width: 80, height: 80)
                             .foregroundColor(.blue)
+                            .background(
+                                Circle()
+                                    .fill(Color.blue.opacity(0.1))
+                                    .frame(width: 100, height: 100)
+                            )
                             .padding(.top, 40)
                         
                         Text(viewModel.isRegistering ? "创建账号" : "欢迎回来")
@@ -41,91 +46,55 @@ struct LoginView: View {
                                     .autocapitalization(.none)
                             }
                             .padding()
-                            .background(Color(.systemGray6))
-                            .cornerRadius(10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(.systemGray6))
+                            )
                         }
                         
-                        // 密码
+                        // 密码输入框美化
                         SecureInputField(
                             title: "密码",
                             placeholder: "请输入密码",
                             text: $viewModel.password
                         )
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color(.systemGray6))
+                        )
                         
-                        if viewModel.isRegistering {
-                            // 确认密码
-                            SecureInputField(
-                                title: "确认密码",
-                                placeholder: "请再次输入密码",
-                                text: $viewModel.repassword
-                            )
-                        }
-                    }
-                    .padding(.horizontal)
-                    
-                    // 登录/注册按钮
-                    Button {
-                        Task {
-                            if viewModel.isRegistering {
-                                await viewModel.register()
-                            } else {
+                        // 登录按钮
+                        Button {
+                            Task {
                                 await viewModel.login()
                             }
-                            if viewModel.error == nil {
-                                dismiss()
+                        } label: {
+                            HStack {
+                                if viewModel.isLoading {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                } else {
+                                    Text("登录")
+                                        .fontWeight(.semibold)
+                                }
                             }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.blue)
+                                    .shadow(color: .blue.opacity(0.3), radius: 5, y: 2)
+                            )
+                            .foregroundColor(.white)
                         }
-                    } label: {
-                        HStack {
-                            if viewModel.isLoading {
-                                ProgressView()
-                                    .progressViewStyle(.circular)
-                                    .tint(.white)
-                            } else {
-                                Image(systemName: viewModel.isRegistering ? "person.badge.plus" : "arrow.right.circle")
-                                Text(viewModel.isRegistering ? "注册" : "登录")
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
+                        .disabled(viewModel.isLoading)
+                        .padding(.top, 10)
                     }
                     .padding(.horizontal)
-                    .disabled(viewModel.isLoading)
-                    
-                    // 切换登录/注册
-                    Button {
-                        withAnimation {
-                            viewModel.isRegistering.toggle()
-                            viewModel.error = nil
-                            // 清空输入
-                            viewModel.password = ""
-                            viewModel.repassword = ""
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Text(viewModel.isRegistering ? "已有账号？" : "没有账号？")
-                                .foregroundColor(.secondary)
-                            Text(viewModel.isRegistering ? "去登录" : "去注册")
-                                .foregroundColor(.blue)
-                        }
-                        .font(.subheadline)
-                    }
                 }
+                .padding()
             }
             .navigationBarTitleDisplayMode(.inline)
-            .alert("错误", isPresented: .init(
-                get: { viewModel.error != nil },
-                set: { if !$0 { viewModel.error = nil } }
-            )) {
-                Button("确定", role: .cancel) {}
-            } message: {
-                if let error = viewModel.error {
-                    Text(error.localizedDescription)
-                }
-            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button {
@@ -135,6 +104,12 @@ struct LoginView: View {
                             .foregroundColor(.primary)
                     }
                 }
+            }
+        }
+        .toast(isShowing: $viewModel.showToast, message: viewModel.toastMessage)
+        .onAppear {
+            viewModel.dismiss = {
+                dismiss()
             }
         }
     }

@@ -10,6 +10,8 @@ final class LoginViewModel: ObservableObject {
     @Published var error: Error?
     @Published var isRegistering = false  // 是否处于注册模式
     @Published var showError = false
+    @Published var showToast = false
+    @Published var toastMessage = ""
     
     private let authService = AuthService.shared
     private let userState = UserState.shared
@@ -37,6 +39,11 @@ final class LoginViewModel: ObservableObject {
                 password: password
             )
             userState.login(user: response)
+            // 显示成功提示
+            toastMessage = "登录成功"
+            showToast = true
+            // 登录成功后直接关闭
+            dismiss?()
             HiLog.i("登录成功: \(response.nickname)")
         } catch {
             self.error = error
@@ -81,4 +88,7 @@ final class LoginViewModel: ObservableObject {
         }
         isLoading = false
     }
+    
+    // 添加关闭回调
+    var dismiss: (() -> Void)?
 } 

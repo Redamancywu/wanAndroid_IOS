@@ -26,6 +26,10 @@ class ProfileViewModel: ObservableObject {
     private let userApiService = UserApiService.shared
     
     init() {
+        // 初始化时同步用户状态
+        self.username = userState.username
+        self.isLoggedIn = userState.isLoggedIn
+        
         // 监听用户状态变化
         setupObservers()
         
@@ -49,6 +53,7 @@ class ProfileViewModel: ObservableObject {
     
     @objc private func handleLoginStatusChanged() {
         isLoggedIn = userState.isLoggedIn
+        username = userState.username  // 同步用户名
         if isLoggedIn {
             Task {
                 await fetchUserInfo()
@@ -78,16 +83,19 @@ class ProfileViewModel: ObservableObject {
     
     func logout() async {
         do {
-            try await authService.logout()
+            try await AuthService.shared.logout()
             userState.logout()
+            // 更新本地状态
             resetUserInfo()
+            // 显示退出成功提示
+            HiLog.i("退出登录成功")
         } catch {
-            print("登出失败: \(error)")
+            HiLog.e("退出登录失败: \(error)")
         }
     }
     
     private func resetUserInfo() {
-        username = "游客"
+        username = "游客"  // 确保更新用户名
         coinCount = 0
         level = 0
         rank = "--"

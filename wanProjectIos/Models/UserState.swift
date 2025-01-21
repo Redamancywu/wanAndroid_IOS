@@ -31,16 +31,25 @@ class UserState: ObservableObject {
         currentUser = user
         isLoggedIn = true
         token = user.token
-        // 保存用户信息到 UserDefaults
+        username = user.nickname  // 更新用户名
         saveUserInfo(user)
+        // 发送通知
+        NotificationCenter.default.post(name: .userLoginStatusChanged, object: nil)
     }
     
     func logout() {
         currentUser = nil
         isLoggedIn = false
         token = nil
+        username = "游客"
+        coinCount = 0
+        level = 0
+        rank = "--"
+        collectedArticles.removeAll()
         // 清除用户信息
         clearUserInfo()
+        // 发送通知
+        NotificationCenter.default.post(name: .userLoginStatusChanged, object: nil)
     }
     
     private func saveUserInfo(_ user: LoginResponse) {

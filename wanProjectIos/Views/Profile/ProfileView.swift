@@ -16,9 +16,12 @@ struct ProfileView: View {
         ],
         [
             FunctionItem(icon: "gear", title: "设置", color: .gray),
-            FunctionItem(icon: "link.circle.fill", title: "GitHub", color: .black, subtitle: "@Redamancywu"),
+            FunctionItem(icon: "person.2.circle.fill", title: "联系", color: .blue),
             FunctionItem(icon: "info.circle.fill", title: "关于", color: .blue),
             FunctionItem(icon: "questionmark.circle.fill", title: "帮助与反馈", color: .orange)
+        ],
+        [
+            FunctionItem(icon: "rectangle.portrait.and.arrow.right", title: "退出登录", color: .red, requiresLogin: true)
         ]
     ]
     
@@ -28,10 +31,12 @@ struct ProfileView: View {
                 VStack(spacing: 20) {
                     // 用户信息卡片
                     userInfoCard
+                        .padding(.horizontal)
                     
                     // 功能列表
                     ForEach(Array(functionItems.enumerated()), id: \.offset) { _, items in
                         functionGroup(items: items)
+                            .padding(.horizontal)
                     }
                     
                     // 版本信息
@@ -43,16 +48,20 @@ struct ProfileView: View {
                             showLoginSheet = true
                         } label: {
                             Text("登录/注册")
+                                .fontWeight(.semibold)
                                 .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.blue)
+                                .frame(height: 50)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.blue)
+                                        .shadow(color: .blue.opacity(0.3), radius: 5, y: 2)
+                                )
                                 .foregroundColor(.white)
-                                .cornerRadius(10)
                         }
-                        .padding()
+                        .padding(.horizontal)
                     }
                 }
-                .padding()
+                .padding(.vertical)
             }
             .background(Color(.systemGroupedBackground).ignoresSafeArea())
             .alert("需要登录", isPresented: $viewModel.showLoginAlert) {
@@ -72,68 +81,44 @@ struct ProfileView: View {
     
     // 用户信息卡片
     private var userInfoCard: some View {
-        VStack(spacing: 12) {
-            VStack(spacing: 8) {
+        VStack(spacing: 16) {
+            // 头像和用户名
+            VStack(spacing: 12) {
+                Image(systemName: "person.circle.fill")
+                    .resizable()
+                    .frame(width: 60, height: 60)
+                    .foregroundColor(.blue)
+                    .background(
+                        Circle()
+                            .fill(Color.blue.opacity(0.1))
+                            .frame(width: 80, height: 80)
+                    )
+                
                 Text(viewModel.username)
                     .font(.title2)
                     .fontWeight(.medium)
-                
-                if viewModel.isLoggedIn {
-                    HStack(spacing: 16) {
-                        // 积分信息
-                        VStack(spacing: 4) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "dollarsign.circle.fill")
-                                    .foregroundColor(.orange)
-                                Text("\(viewModel.coinCount)")
-                                    .foregroundColor(.primary)
-                            }
-                            Text("积分")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                        
-                        // 等级信息
-                        VStack(spacing: 4) {
-                            Text("Lv.\(viewModel.level)")
-                                .foregroundColor(.primary)
-                            Text("等级")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                        
-                        // 排名信息
-                        VStack(spacing: 4) {
-                            Text(viewModel.rank)
-                                .foregroundColor(.primary)
-                            Text("排名")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                    }
-                    .padding(.top, 4)
-                }
             }
             
-            // 登录/注册按钮
-            if !viewModel.isLoggedIn {
-                Button {
-                    viewModel.showLogin()
-                } label: {
-                    Text("登录/注册")
-                        .foregroundColor(.blue)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 8)
-                        .background(Color.blue.opacity(0.1))
-                        .cornerRadius(20)
+            if viewModel.isLoggedIn {
+                Divider()
+                    .padding(.horizontal)
+                
+                // 用户数据
+                HStack(spacing: 40) {
+                    UserDataItem(icon: "dollarsign.circle.fill", value: "\(viewModel.coinCount)", title: "积分", color: .orange)
+                    UserDataItem(icon: "chart.line.uptrend.xyaxis", value: "Lv.\(viewModel.level)", title: "等级", color: .blue)
+                    UserDataItem(icon: "trophy.fill", value: viewModel.rank, title: "排名", color: .yellow)
                 }
+                .padding(.top, 8)
             }
         }
-        .frame(maxWidth: .infinity)
         .padding(.vertical, 24)
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.05), radius: 5, y: 2)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemBackground))
+                .shadow(color: Color.black.opacity(0.05), radius: 10, y: 5)
+        )
     }
     
     // 功能组
@@ -156,17 +141,25 @@ struct ProfileView: View {
     // 功能单元格
     private func functionCell(item: FunctionItem) -> some View {
         Group {
-            if item.requiresLogin && !viewModel.isLoggedIn {
-                // 需要登录的功能，但未登录时显示按钮
+            if item.title == "退出登录" {
+                Button {
+                    Task {
+                        await viewModel.logout()
+                    }
+                } label: {
+                    functionCellContent(item: item)
+                }
+            } else if item.requiresLogin && !viewModel.isLoggedIn {
                 Button {
                     viewModel.showLogin()
                 } label: {
                     functionCellContent(item: item)
                 }
             } else {
-                // 不需要登录或已登录时显示导航链接
                 NavigationLink {
                     switch item.title {
+                    case "联系":
+                        ContactView()
                     case "GitHub":
                         if let url = URL(string: "https://github.com/Redamancywu") {
                             SafariView(url: url)
@@ -271,6 +264,27 @@ struct SafariView: UIViewControllerRepresentable {
     
     func updateUIViewController(_ uiViewController: SFSafariViewController, context: UIViewControllerRepresentableContext<SafariView>) {
         // 不需要更新
+    }
+}
+
+// 用户数据项组件
+struct UserDataItem: View {
+    let icon: String
+    let value: String
+    let title: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .font(.title3)
+            Text(value)
+                .font(.headline)
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.gray)
+        }
     }
 }
 
